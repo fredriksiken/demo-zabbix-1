@@ -9,81 +9,98 @@ class ComposerStaticInit3e832710df7ec8c92736d5724fad7cab
     public static $files = array (
         '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
         '320cde22f66dd4f5d3fd621d3e88b98f' => __DIR__ . '/..' . '/symfony/polyfill-ctype/bootstrap.php',
+        '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => __DIR__ . '/..' . '/symfony/polyfill-mbstring/bootstrap.php',
+        '2a3c2110e8e0295330dc3d11a4cbc4cb' => __DIR__ . '/..' . '/php-webdriver/webdriver/lib/Exception/TimeoutException.php',
     );
 
     public static $prefixLengthsPsr4 = array (
-        'S' => 
+        'S' =>
         array (
+            'Symfony\\Polyfill\\Mbstring\\' => 26,
             'Symfony\\Polyfill\\Ctype\\' => 23,
             'Symfony\\Component\\Yaml\\' => 23,
+            'Symfony\\Component\\Process\\' => 26,
             'SCIM\\' => 5,
         ),
-        'R' => 
+        'R' =>
         array (
             'RobRichards\\XMLSecLibs\\' => 23,
         ),
-        'P' => 
+        'P' =>
         array (
             'PragmaRX\\Google2FA\\' => 19,
             'ParagonIE\\ConstantTime\\' => 23,
         ),
-        'O' => 
+        'O' =>
         array (
             'OneLogin\\' => 9,
         ),
-        'F' => 
+        'F' =>
         array (
             'Firebase\\JWT\\' => 13,
+            'Facebook\\WebDriver\\' => 19,
         ),
-        'D' => 
+        'D' =>
         array (
             'Duo\\DuoUniversal\\' => 17,
         ),
     );
 
     public static $prefixDirsPsr4 = array (
-        'Symfony\\Polyfill\\Ctype\\' => 
+        'Symfony\\Polyfill\\Mbstring\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/symfony/polyfill-mbstring',
+        ),
+        'Symfony\\Polyfill\\Ctype\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/polyfill-ctype',
         ),
-        'Symfony\\Component\\Yaml\\' => 
+        'Symfony\\Component\\Yaml\\' =>
         array (
             0 => __DIR__ . '/..' . '/symfony/yaml',
         ),
-        'SCIM\\' => 
+        'Symfony\\Component\\Process\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/symfony/process',
+        ),
+        'SCIM\\' =>
         array (
             0 => __DIR__ . '/../..' . '/include/classes/scim',
         ),
-        'RobRichards\\XMLSecLibs\\' => 
+        'RobRichards\\XMLSecLibs\\' =>
         array (
             0 => __DIR__ . '/..' . '/robrichards/xmlseclibs/src',
         ),
-        'PragmaRX\\Google2FA\\' => 
+        'PragmaRX\\Google2FA\\' =>
         array (
             0 => __DIR__ . '/..' . '/pragmarx/google2fa/src',
         ),
-        'ParagonIE\\ConstantTime\\' => 
+        'ParagonIE\\ConstantTime\\' =>
         array (
             0 => __DIR__ . '/..' . '/paragonie/constant_time_encoding/src',
         ),
-        'OneLogin\\' => 
+        'OneLogin\\' =>
         array (
             0 => __DIR__ . '/..' . '/onelogin/php-saml/src',
         ),
-        'Firebase\\JWT\\' => 
+        'Firebase\\JWT\\' =>
         array (
             0 => __DIR__ . '/..' . '/firebase/php-jwt/src',
         ),
-        'Duo\\DuoUniversal\\' => 
+        'Facebook\\WebDriver\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/php-webdriver/webdriver/lib',
+        ),
+        'Duo\\DuoUniversal\\' =>
         array (
             0 => __DIR__ . '/..' . '/duosecurity/duo_universal_php/src',
         ),
     );
 
     public static $prefixesPsr0 = array (
-        'P' => 
+        'P' =>
         array (
-            'Parsedown' => 
+            'Parsedown' =>
             array (
                 0 => __DIR__ . '/..' . '/erusev/parsedown',
             ),

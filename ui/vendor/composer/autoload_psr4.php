@@ -6,13 +6,16 @@ $vendorDir = dirname(__DIR__);
 $baseDir = dirname($vendorDir);
 
 return array(
+    'Symfony\\Polyfill\\Mbstring\\' => array($vendorDir . '/symfony/polyfill-mbstring'),
     'Symfony\\Polyfill\\Ctype\\' => array($vendorDir . '/symfony/polyfill-ctype'),
     'Symfony\\Component\\Yaml\\' => array($vendorDir . '/symfony/yaml'),
+    'Symfony\\Component\\Process\\' => array($vendorDir . '/symfony/process'),
     'SCIM\\' => array($baseDir . '/include/classes/scim'),
     'RobRichards\\XMLSecLibs\\' => array($vendorDir . '/robrichards/xmlseclibs/src'),
     'PragmaRX\\Google2FA\\' => array($vendorDir . '/pragmarx/google2fa/src'),
     'ParagonIE\\ConstantTime\\' => array($vendorDir . '/paragonie/constant_time_encoding/src'),
     'OneLogin\\' => array($vendorDir . '/onelogin/php-saml/src'),
     'Firebase\\JWT\\' => array($vendorDir . '/firebase/php-jwt/src'),
+    'Facebook\\WebDriver\\' => array($vendorDir . '/php-webdriver/webdriver/lib'),
     'Duo\\DuoUniversal\\' => array($vendorDir . '/duosecurity/duo_universal_php/src'),
 );

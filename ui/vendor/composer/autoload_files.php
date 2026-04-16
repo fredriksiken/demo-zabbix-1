@@ -8,4 +8,6 @@ $baseDir = dirname($vendorDir);
 return array(
     '6e3fae29631ef280660b3cdad06f25a8' => $vendorDir . '/symfony/deprecation-contracts/function.php',
     '320cde22f66dd4f5d3fd621d3e88b98f' => $vendorDir . '/symfony/polyfill-ctype/bootstrap.php',
+    '0e6d7bf4a5811bfa5cf40c5ccd6fae6a' => $vendorDir . '/symfony/polyfill-mbstring/bootstrap.php',
+    '2a3c2110e8e0295330dc3d11a4cbc4cb' => $vendorDir . '/php-webdriver/webdriver/lib/Exception/TimeoutException.php',
 );

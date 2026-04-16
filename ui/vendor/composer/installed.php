@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'zabbix/ui',
-        'pretty_version' => 'dev-master',
-        'version' => 'dev-master',
-        'reference' => '2dd4beb0a0666e6a4dd5fc283a4f26924dfa1b33',
+        'pretty_version' => 'dev-1acb2f1eb579def7867add9c02af1e72d23eb6b8',
+        'version' => 'dev-1acb2f1eb579def7867add9c02af1e72d23eb6b8',
+        'reference' => '1acb2f1eb579def7867add9c02af1e72d23eb6b8',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -27,6 +27,12 @@
             'install_path' => __DIR__ . '/../erusev/parsedown',
             'aliases' => array(),
             'dev_requirement' => false,
+        ),
+        'facebook/webdriver' => array(
+            'dev_requirement' => true,
+            'replaced' => array(
+                0 => '*',
+            ),
         ),
         'firebase/php-jwt' => array(
             'pretty_version' => 'v6.10.0',
@@ -54,6 +60,15 @@
             'install_path' => __DIR__ . '/../paragonie/constant_time_encoding',
             'aliases' => array(),
             'dev_requirement' => false,
+        ),
+        'php-webdriver/webdriver' => array(
+            'pretty_version' => '1.16.0',
+            'version' => '1.16.0.0',
+            'reference' => 'ac0662863aa120b4f645869f584013e4c4dba46a',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../php-webdriver/webdriver',
+            'aliases' => array(),
+            'dev_requirement' => true,
         ),
         'pragmarx/google2fa' => array(
             'pretty_version' => 'v8.0.1',
@@ -91,6 +106,24 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
+        'symfony/polyfill-mbstring' => array(
+            'pretty_version' => 'v1.35.0',
+            'version' => '1.35.0.0',
+            'reference' => '6a21eb99c6973357967f6ce3708cd55a6bec6315',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../symfony/polyfill-mbstring',
+            'aliases' => array(),
+            'dev_requirement' => true,
+        ),
+        'symfony/process' => array(
+            'pretty_version' => 'v7.4.8',
+            'version' => '7.4.8.0',
+            'reference' => '60f19cd3badc8de688421e21e4305eba50f8089a',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../symfony/process',
+            'aliases' => array(),
+            'dev_requirement' => true,
+        ),
         'symfony/yaml' => array(
             'pretty_version' => 'v5.1.3',
             'version' => '5.1.3.0',
@@ -101,9 +134,9 @@
             'dev_requirement' => false,
         ),
         'zabbix/ui' => array(
-            'pretty_version' => 'dev-master',
-            'version' => 'dev-master',
-            'reference' => '2dd4beb0a0666e6a4dd5fc283a4f26924dfa1b33',
+            'pretty_version' => 'dev-1acb2f1eb579def7867add9c02af1e72d23eb6b8',
+            'version' => 'dev-1acb2f1eb579def7867add9c02af1e72d23eb6b8',
+            'reference' => '1acb2f1eb579def7867add9c02af1e72d23eb6b8',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
