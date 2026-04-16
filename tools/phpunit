@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cache_dir="${PHPUNIT_CACHE_DIR:-$script_dir/.cache}"
+phpunit_version="${PHPUNIT_VERSION:-9.6.34}"
+phar_path="${PHPUNIT_PHAR:-$cache_dir/phpunit-${phpunit_version}.phar}"
+download_url="${PHPUNIT_PHAR_URL:-https://phar.phpunit.de/phpunit-${phpunit_version}.phar}"
+
+if [[ ! -f "$phar_path" ]]; then
+	mkdir -p "$cache_dir"
+	tmp_path="${phar_path}.tmp"
+
+	curl --fail --location --retry 3 --output "$tmp_path" "$download_url"
+	chmod 0755 "$tmp_path"
+	mv "$tmp_path" "$phar_path"
+fi
+
+exec php "$phar_path" "$@"

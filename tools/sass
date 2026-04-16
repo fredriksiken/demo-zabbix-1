@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+sass_version="${SASS_VERSION:-1.93.2}"
+
+exec npm exec --yes --package="sass@${sass_version}" -- sass "$@"
