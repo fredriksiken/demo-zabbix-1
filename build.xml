@@ -7,6 +7,36 @@
 				<length string="${PHPUNIT_FILTER}" when="greater" length="0"/>
 			</and>
 		</condition>
+		<condition property="phpunit_filter_value" value="${PHPUNIT_FILTER}" else="">
+			<and>
+				<isset property="PHPUNIT_FILTER" />
+				<length string="${PHPUNIT_FILTER}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="phpunit_bin" value="${PHPUNIT_BIN}" else="${basedir}/tools/phpunit">
+			<and>
+				<isset property="PHPUNIT_BIN" />
+				<length string="${PHPUNIT_BIN}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="composer_bin" value="${COMPOSER_BIN}" else="${basedir}/tools/composer">
+			<and>
+				<isset property="COMPOSER_BIN" />
+				<length string="${COMPOSER_BIN}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="frontend_webserver_bin" value="${FRONTEND_WEBSERVER_BIN}" else="${basedir}/tools/frontend-webserver">
+			<and>
+				<isset property="FRONTEND_WEBSERVER_BIN" />
+				<length string="${FRONTEND_WEBSERVER_BIN}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="frontend_webdriver_bin" value="${FRONTEND_WEBDRIVER_BIN}" else="${basedir}/tools/frontend-webdriver">
+			<and>
+				<isset property="FRONTEND_WEBDRIVER_BIN" />
+				<length string="${FRONTEND_WEBDRIVER_BIN}" when="greater" length="0"/>
+			</and>
+		</condition>
 
 		<!-- Cleanup from the previous run -->
 		<delete dir="build/logs" failonerror="off"/>
@@ -15,14 +45,74 @@
 	</target>
 
 	<target name="create-frontend-configs">
-		<property name="dbtype" value="${DBTYPE}"/>
-		<property name="dbhost" value="${DBHOST}"/>
-		<property name="dbport" value="${DBPORT}"/>
-		<property name="dbname" value="${DBNAME}"/>
-		<property name="dbuser" value="${DBUSER}"/>
-		<property name="dbpassword" value="${DBPASSWORD}"/>
-		<property name="phpunit_error_log" value="${PHPUNIT_ERROR_LOG}"/>
-		<property name="phpunit_port_prefix" value="${PHPUNIT_PORT_PREFIX}"/>
+		<condition property="dbtype" value="${DBTYPE}" else="POSTGRESQL">
+			<and>
+				<isset property="DBTYPE" />
+				<length string="${DBTYPE}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="dbhost" value="${DBHOST}" else="127.0.0.1">
+			<and>
+				<isset property="DBHOST" />
+				<length string="${DBHOST}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="dbport" value="${DBPORT}" else="5432">
+			<and>
+				<isset property="DBPORT" />
+				<length string="${DBPORT}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="dbname" value="${DBNAME}" else="zabbix">
+			<and>
+				<isset property="DBNAME" />
+				<length string="${DBNAME}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="dbuser" value="${DBUSER}" else="zabbix">
+			<and>
+				<isset property="DBUSER" />
+				<length string="${DBUSER}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="dbpassword" value="${DBPASSWORD}" else="zabbix">
+			<and>
+				<isset property="DBPASSWORD" />
+				<length string="${DBPASSWORD}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="frontend.default_postgresql_bare_shell">
+			<and>
+				<equals arg1="${dbtype}" arg2="POSTGRESQL"/>
+				<equals arg1="${dbhost}" arg2="127.0.0.1"/>
+				<equals arg1="${dbport}" arg2="5432"/>
+				<equals arg1="${dbname}" arg2="zabbix"/>
+				<equals arg1="${dbuser}" arg2="zabbix"/>
+				<equals arg1="${dbpassword}" arg2="zabbix"/>
+				<not>
+					<or>
+						<isset property="DBTYPE"/>
+						<isset property="DBHOST"/>
+						<isset property="DBPORT"/>
+						<isset property="DBNAME"/>
+						<isset property="DBUSER"/>
+						<isset property="DBPASSWORD"/>
+					</or>
+				</not>
+			</and>
+		</condition>
+		<condition property="phpunit_error_log" value="${PHPUNIT_ERROR_LOG}" else="/tmp/zbx-phpunit-errors.log">
+			<and>
+				<isset property="PHPUNIT_ERROR_LOG" />
+				<length string="${PHPUNIT_ERROR_LOG}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="phpunit_port_prefix" value="${PHPUNIT_PORT_PREFIX}" else="19">
+			<and>
+				<isset property="PHPUNIT_PORT_PREFIX" />
+				<length string="${PHPUNIT_PORT_PREFIX}" when="greater" length="0"/>
+			</and>
+		</condition>
 
 		<!-- Create PHP config file -->
 		<copy overwrite="true" file="ui/tests/templates/zabbix.conf.php" tofile="ui/conf/zabbix.conf.php"/>
@@ -38,34 +128,170 @@
 	</target>
 
 	<target name="create-configs" depends="init-common,create-frontend-configs">
-		<property name="url" value="${URL}"/>
-		<property name="screenshot_dir" value="${SCREENSHOT_DIR}"/>
-		<property name="screenshot_url" value="${SCREENSHOT_URL}"/>
-		<property name="component_dir" value="${COMPONENT_DIR}"/>
-		<property name="phpunit_port_prefix" value="${PHPUNIT_PORT_PREFIX}"/>
-		<property name="screenshot_references_dir" value="${SCREENSHOT_REFERENCES_DIR}"/>
+		<condition property="frontend.repo_webserver_required">
+			<and>
+				<isset property="frontend.default_postgresql_bare_shell"/>
+				<not>
+					<isset property="URL"/>
+				</not>
+			</and>
+		</condition>
+		<condition property="frontend_server_host" value="${FRONTEND_SERVER_HOST}" else="127.0.0.1">
+			<and>
+				<isset property="FRONTEND_SERVER_HOST" />
+				<length string="${FRONTEND_SERVER_HOST}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="frontend_server_port" value="${FRONTEND_SERVER_PORT}" else="18080">
+			<and>
+				<isset property="FRONTEND_SERVER_PORT" />
+				<length string="${FRONTEND_SERVER_PORT}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="default_url" value="http://${frontend_server_host}:${frontend_server_port}/"
+				else="http://127.0.0.1/">
+			<isset property="frontend.repo_webserver_required"/>
+		</condition>
+		<condition property="url" value="${URL}" else="${default_url}">
+			<and>
+				<isset property="URL" />
+				<length string="${URL}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="screenshot_dir" value="${SCREENSHOT_DIR}" else="/tmp/zbx-screenshots">
+			<and>
+				<isset property="SCREENSHOT_DIR" />
+				<length string="${SCREENSHOT_DIR}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="default_screenshot_url" value="http://${frontend_server_host}:${frontend_server_port}/screenshots/"
+				else="http://127.0.0.1/screenshots/">
+			<isset property="frontend.repo_webserver_required"/>
+		</condition>
+		<condition property="screenshot_url" value="${SCREENSHOT_URL}" else="${default_screenshot_url}">
+			<and>
+				<isset property="SCREENSHOT_URL" />
+				<length string="${SCREENSHOT_URL}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="component_dir" value="${COMPONENT_DIR}" else="/tmp/zbx-components">
+			<and>
+				<isset property="COMPONENT_DIR" />
+				<length string="${COMPONENT_DIR}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="phpunit_port_prefix" value="${PHPUNIT_PORT_PREFIX}" else="19">
+			<and>
+				<isset property="PHPUNIT_PORT_PREFIX" />
+				<length string="${PHPUNIT_PORT_PREFIX}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="screenshot_references_dir" value="${SCREENSHOT_REFERENCES_DIR}" else="/tmp/zbx-screenshots-ref">
+			<and>
+				<isset property="SCREENSHOT_REFERENCES_DIR" />
+				<length string="${SCREENSHOT_REFERENCES_DIR}" when="greater" length="0"/>
+			</and>
+		</condition>
 		<condition property="phpunit_driver_address" value="${PHPUNIT_DRIVER_ADDRESS}" else="localhost">
 			<and>
 				<isset property="PHPUNIT_DRIVER_ADDRESS" />
 				<length string="${PHPUNIT_DRIVER_ADDRESS}" when="greater" length="0"/>
 			</and>
 		</condition>
+		<condition property="frontend.repo_webdriver_required">
+			<and>
+				<isset property="frontend.default_postgresql_bare_shell"/>
+				<not>
+					<isset property="PHPUNIT_DRIVER_ADDRESS"/>
+				</not>
+			</and>
+		</condition>
 		<property environment="env"/>
+		<mkdir dir="${screenshot_dir}"/>
+		<mkdir dir="${component_dir}"/>
+		<mkdir dir="${screenshot_references_dir}"/>
+		<exec executable="sh" failonerror="off" outputproperty="frontend.phpunit_target_path"
+				resultproperty="frontend.phpunit_target_lookup_exit">
+			<arg value="-c"/>
+			<arg value="cd '${basedir}/ui' &amp;&amp; if [ -n '${phpunit_filter_value}' ]; then rg --files tests/general tests/selenium -g '${phpunit_filter_value}.php' | head -n 1; fi"/>
+		</exec>
+		<condition property="frontend.phpunit_target_found">
+			<and>
+				<equals arg1="${frontend.phpunit_target_lookup_exit}" arg2="0"/>
+				<length string="${frontend.phpunit_target_path}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="frontend.phpunit_scope_arg" value="" else="--testsuite=frontend">
+			<isset property="frontend.phpunit_target_found"/>
+		</condition>
+		<condition property="frontend.phpunit_target_arg" value="${frontend.phpunit_target_path}" else="">
+			<isset property="frontend.phpunit_target_found"/>
+		</condition>
+		<condition property="frontend.clean_postgresql_frontend_fixtures_required">
+			<and>
+				<isset property="frontend.default_postgresql_bare_shell"/>
+				<or>
+					<equals arg1="${frontend.phpunit_target_path}" arg2="tests/selenium/testDocumentationLinks.php"/>
+					<equals arg1="${phpunit_filter_value}" arg2="testDocumentationLinks"/>
+				</or>
+			</and>
+		</condition>
 
 		<!-- Create bootstrap.php -->
 		<copy overwrite="true" file="ui/tests/bootstrap.php.template" tofile="ui/tests/bootstrap.php"/>
 		<replace file="ui/tests/bootstrap.php" token="{URL}" value="${url}"/>
 		<replace file="ui/tests/bootstrap.php" token="{BASEDIR}" value="${basedir}"/>
-		<replace file="ui/tests/bootstrap.php" token="{SCREENSHOT_DIR}" value="${screenshot_dir}"/>
+		<replace file="ui/tests/bootstrap.php" token="{SCREENSHOT_DIR}" value="${screenshot_dir}/"/>
 		<replace file="ui/tests/bootstrap.php" token="{SCREENSHOT_URL}" value="${screenshot_url}"/>
 		<replace file="ui/tests/bootstrap.php" token="{BINARY_DIR}" value="${basedir}/sbin/"/>
 		<replace file="ui/tests/bootstrap.php" token="{CONFIG_SOURCE_DIR}" value="${basedir}/conf/"/>
 		<replace file="ui/tests/bootstrap.php" token="{CONFIG_DIR}" value="${basedir}/etc/"/>
-		<replace file="ui/tests/bootstrap.php" token="{COMPONENT_DIR}" value="${component_dir}"/>
+		<replace file="ui/tests/bootstrap.php" token="{COMPONENT_DIR}" value="${component_dir}/"/>
 		<replace file="ui/tests/bootstrap.php" token="{PORT_PREFIX}" value="${phpunit_port_prefix}"/>
-		<replace file="ui/tests/bootstrap.php" token="{SCREENSHOT_REFERENCES_DIR}" value="${screenshot_references_dir}"/>
+		<replace file="ui/tests/bootstrap.php" token="{SCREENSHOT_REFERENCES_DIR}" value="${screenshot_references_dir}/"/>
 		<replace file="ui/tests/bootstrap.php" token="{PHPUNIT_DRIVER_ADDRESS}" value="${phpunit_driver_address}"/>
 		<replace file="ui/tests/bootstrap.php" token="{PHPUNIT_DATA_SOURCES_DIR}" value="${basedir}/ui/tests/selenium/data/sources/"/>
+	</target>
+
+	<target name="install-ui-dependencies" depends="init-common" unless="ui.webdriver_available">
+		<exec executable="${composer_bin}" failonerror="on">
+			<arg line="install --working-dir=${basedir}/ui --no-interaction --prefer-dist --no-progress"/>
+		</exec>
+	</target>
+
+	<target name="ensure-ui-webdriver" depends="init-common">
+		<available file="ui/vendor/php-webdriver/webdriver/lib/Remote/RemoteWebElement.php"
+				property="ui.webdriver_available"/>
+		<antcall target="install-ui-dependencies" inheritAll="true"/>
+	</target>
+
+	<target name="ensure-frontend-webserver" depends="create-configs" if="frontend.repo_webserver_required">
+		<echo message="Ensuring repo-managed frontend web server is available at ${url}"/>
+		<exec executable="${frontend_webserver_bin}" failonerror="on">
+			<env key="FRONTEND_SERVER_HOST" value="${frontend_server_host}"/>
+			<env key="FRONTEND_SERVER_PORT" value="${frontend_server_port}"/>
+			<env key="FRONTEND_SERVER_DOCROOT" value="${basedir}/ui"/>
+			<env key="FRONTEND_SERVER_PID_FILE" value="${basedir}/runtime/frontend-webserver.pid"/>
+			<env key="FRONTEND_SERVER_LOG_FILE" value="${basedir}/runtime/frontend-webserver.log"/>
+			<arg value="start"/>
+		</exec>
+	</target>
+
+	<target name="reset-frontend-session-storage" depends="create-configs"
+			if="frontend.clean_postgresql_frontend_fixtures_required">
+		<echo message="Clearing repo-local frontend session files before the shared documentation-link rerun."/>
+		<mkdir dir="${basedir}/runtime/php-sessions"/>
+		<delete failonerror="off" includeemptydirs="true">
+			<fileset dir="${basedir}/runtime/php-sessions" includes="**/*"/>
+		</delete>
+	</target>
+
+	<target name="ensure-frontend-webdriver" depends="create-configs" if="frontend.repo_webdriver_required">
+		<echo message="Ensuring repo-managed frontend WebDriver is available at http://${phpunit_driver_address}:4444/wd/hub/status"/>
+		<exec executable="${frontend_webdriver_bin}" failonerror="on">
+			<env key="SELENIUM_STATUS_URL" value="http://${phpunit_driver_address}:4444/wd/hub/status"/>
+			<arg value="start"/>
+		</exec>
 	</target>
 
 	<target name="show-browser-info">
@@ -239,12 +465,17 @@
 		<exec executable="psql" failonerror="on">
 			<env key="PGPASSWORD" value="${dbpassword}"/>
 			<arg line="-q"/>
+			<arg line="-d 'postgres'"/>
 			<arg line="-h '${dbhost}'"/>
 			<arg line="-p '${dbport}'"/>
 			<arg line="-U '${dbuser}'"/>
 			<arg line="--set ON_ERROR_STOP=1"/>
 			<arg line="-c 'create database ${dbname} ENCODING = UTF8 TEMPLATE = template0'"/>
 		</exec>
+		<antcall target="load-db-postgresql-base" inheritAll="true"/>
+	</target>
+
+	<target name="load-db-postgresql-base">
 		<exec executable="psql" input="database/postgresql/schema.sql" failonerror="on">
 			<env key="PGPASSWORD" value="${dbpassword}"/>
 			<arg line="-q"/>
@@ -291,6 +522,7 @@
 		<exec executable="psql" failonerror="on">
 			<env key="PGPASSWORD" value="${dbpassword}"/>
 			<arg line="-q"/>
+			<arg line="-d 'postgres'"/>
 			<arg line="-h '${dbhost}'"/>
 			<arg line="-p '${dbport}'"/>
 			<arg line="-U '${dbuser}'"/>
@@ -327,6 +559,7 @@
 		<exec executable="psql" failonerror="on">
 			<env key="PGPASSWORD" value="${dbpassword}"/>
 			<arg line="-q"/>
+			<arg line="-d 'postgres'"/>
 			<arg line="-h '${dbhost}'"/>
 			<arg line="-p '${dbport}'"/>
 			<arg line="-U '${dbuser}'"/>
@@ -336,6 +569,7 @@
 		<exec executable="psql" failonerror="on">
 			<env key="PGPASSWORD" value="${dbpassword}"/>
 			<arg line="-q"/>
+			<arg line="-d 'postgres'"/>
 			<arg line="-h '${dbhost}'"/>
 			<arg line="-p '${dbport}'"/>
 			<arg line="-U '${dbuser}'"/>
@@ -345,6 +579,7 @@
 		<exec executable="psql" failonerror="on">
 			<env key="PGPASSWORD" value="${dbpassword}"/>
 			<arg line="-q"/>
+			<arg line="-d 'postgres'"/>
 			<arg line="-h '${dbhost}'"/>
 			<arg line="-p '${dbport}'"/>
 			<arg line="-U '${dbuser}'"/>
@@ -364,6 +599,7 @@
 		<exec executable="psql" failonerror="on">
 			<env key="PGPASSWORD" value="${dbpassword}"/>
 			<arg line="-q"/>
+			<arg line="-d 'postgres'"/>
 			<arg line="-h '${dbhost}'"/>
 			<arg line="-p '${dbport}'"/>
 			<arg line="-U '${dbuser}'"/>
@@ -383,6 +619,10 @@
 	</target>
 
 	<target name="init-frontend-postgresql" depends="create-configs,create-saml-configs,create-ldap-configs,make-dbschema,make-gettext,create-db-postgresql,apply-custom-patches,init-frontend-modules">
+		<antcall target="load-frontend-postgresql-fixtures" inheritAll="true"/>
+	</target>
+
+	<target name="load-frontend-postgresql-fixtures">
 		<exec executable="psql" input="ui/tests/selenium/data/data_test.sql" failonerror="on">
 			<env key="PGPASSWORD" value="${dbpassword}"/>
 			<arg line="-q"/>
@@ -393,6 +633,176 @@
 			<arg line="--set ON_ERROR_STOP=1"/>
 			<arg line="${dbname}"/>
 		</exec>
+	</target>
+
+	<target name="prepare-frontend-postgresql-fixtures" depends="create-configs" if="frontend.default_postgresql_bare_shell">
+		<echo message="Checking default PostgreSQL frontend fixture readiness for ${dbname}."/>
+		<exec executable="psql" failonerror="off" resultproperty="frontend.postgresql.database_probe_exit"
+				outputproperty="frontend.postgresql.database_probe_output">
+			<env key="PGPASSWORD" value="${dbpassword}"/>
+			<arg value="-q"/>
+			<arg value="-h"/>
+			<arg value="${dbhost}"/>
+			<arg value="-p"/>
+			<arg value="${dbport}"/>
+			<arg value="-U"/>
+			<arg value="${dbuser}"/>
+			<arg value="-d"/>
+			<arg value="postgres"/>
+			<arg value="-At"/>
+			<arg value="--set"/>
+			<arg value="ON_ERROR_STOP=1"/>
+			<arg value="-c"/>
+			<arg value="select 1 from pg_database where datname = '${dbname}'"/>
+		</exec>
+		<condition property="frontend.postgresql.database_exists">
+			<and>
+				<equals arg1="${frontend.postgresql.database_probe_exit}" arg2="0"/>
+				<contains string="${frontend.postgresql.database_probe_output}" substring="1"/>
+			</and>
+		</condition>
+		<exec executable="psql" failonerror="off" resultproperty="frontend.postgresql.settings_probe_exit">
+			<env key="PGPASSWORD" value="${dbpassword}"/>
+			<arg value="-q"/>
+			<arg value="-h"/>
+			<arg value="${dbhost}"/>
+			<arg value="-p"/>
+			<arg value="${dbport}"/>
+			<arg value="-U"/>
+			<arg value="${dbuser}"/>
+			<arg value="-d"/>
+			<arg value="${dbname}"/>
+			<arg value="-At"/>
+			<arg value="--set"/>
+			<arg value="ON_ERROR_STOP=1"/>
+			<arg value="-c"/>
+			<arg value="select count(*) from settings;"/>
+		</exec>
+		<condition property="frontend.postgresql.settings_queryable">
+			<and>
+				<isset property="frontend.postgresql.database_exists"/>
+				<equals arg1="${frontend.postgresql.settings_probe_exit}" arg2="0"/>
+			</and>
+		</condition>
+		<condition property="frontend.postgresql.fixtures_ready">
+			<and>
+				<isset property="frontend.postgresql.database_exists"/>
+				<isset property="frontend.postgresql.settings_queryable"/>
+			</and>
+		</condition>
+		<condition property="frontend.postgresql.skip_bootstrap">
+			<and>
+				<isset property="frontend.postgresql.fixtures_ready"/>
+				<not>
+					<isset property="frontend.clean_postgresql_frontend_fixtures_required"/>
+				</not>
+			</and>
+		</condition>
+		<exec executable="psql" failonerror="off" resultproperty="frontend.postgresql.createdb_probe_exit"
+				outputproperty="frontend.postgresql.createdb_probe_output">
+			<env key="PGPASSWORD" value="${dbpassword}"/>
+			<arg value="-q"/>
+			<arg value="-h"/>
+			<arg value="${dbhost}"/>
+			<arg value="-p"/>
+			<arg value="${dbport}"/>
+			<arg value="-U"/>
+			<arg value="${dbuser}"/>
+			<arg value="-d"/>
+			<arg value="postgres"/>
+			<arg value="-At"/>
+			<arg value="--set"/>
+			<arg value="ON_ERROR_STOP=1"/>
+			<arg value="-c"/>
+			<arg value="select case when rolcreatedb then '1' else '0' end from pg_roles where rolname = current_user"/>
+		</exec>
+		<condition property="frontend.postgresql.role_can_createdb">
+			<and>
+				<equals arg1="${frontend.postgresql.createdb_probe_exit}" arg2="0"/>
+				<contains string="${frontend.postgresql.createdb_probe_output}" substring="1"/>
+			</and>
+		</condition>
+		<antcall target="reuse-frontend-postgresql-fixtures" inheritAll="true"/>
+		<antcall target="bootstrap-frontend-postgresql-fixtures" inheritAll="true"/>
+	</target>
+
+	<target name="reuse-frontend-postgresql-fixtures" if="frontend.postgresql.skip_bootstrap">
+		<echo message="Default PostgreSQL frontend fixtures already exist for ${dbname}; skipping bootstrap."/>
+	</target>
+
+	<target name="bootstrap-frontend-postgresql-fixtures"
+			if="frontend.default_postgresql_bare_shell" unless="frontend.postgresql.skip_bootstrap">
+		<condition property="frontend.postgresql.bootstrap_message"
+				value="Resetting default PostgreSQL frontend fixtures for ${dbname} before the shared documentation-link rerun."
+				else="Default PostgreSQL frontend fixtures are missing or incomplete for ${dbname}; bootstrapping schema and Selenium fixtures.">
+			<isset property="frontend.clean_postgresql_frontend_fixtures_required"/>
+		</condition>
+		<echo message="${frontend.postgresql.bootstrap_message}"/>
+		<antcall target="make-dbschema" inheritAll="true"/>
+		<antcall target="create-db-postgresql-via-role" inheritAll="true"/>
+		<antcall target="create-db-postgresql-via-admin" inheritAll="true"/>
+		<antcall target="load-frontend-postgresql-fixtures" inheritAll="true"/>
+	</target>
+
+	<target name="create-db-postgresql-via-role" if="frontend.postgresql.role_can_createdb">
+		<antcall target="create-db-postgresql" inheritAll="true"/>
+	</target>
+
+	<target name="create-db-postgresql-via-admin" unless="frontend.postgresql.role_can_createdb">
+		<exec executable="sudo" failonerror="off" resultproperty="frontend.postgresql.admin_probe_exit">
+			<arg value="-n"/>
+			<arg value="-u"/>
+			<arg value="postgres"/>
+			<arg value="psql"/>
+			<arg value="-d"/>
+			<arg value="postgres"/>
+			<arg value="-Atqc"/>
+			<arg value="select current_user;"/>
+		</exec>
+		<fail message="Default PostgreSQL bootstrap requires passwordless sudo access to the postgres OS account when ${dbuser} cannot create ${dbname}.">
+			<condition>
+				<not>
+					<equals arg1="${frontend.postgresql.admin_probe_exit}" arg2="0"/>
+				</not>
+				</condition>
+			</fail>
+		<exec executable="sudo" failonerror="on">
+			<arg value="-n"/>
+			<arg value="-u"/>
+			<arg value="postgres"/>
+			<arg value="psql"/>
+			<arg value="-d"/>
+			<arg value="postgres"/>
+			<arg value="--set"/>
+			<arg value="ON_ERROR_STOP=1"/>
+			<arg value="-c"/>
+			<arg value="select pg_terminate_backend(pid) from pg_stat_activity where datname = '${dbname}' and pid &lt;&gt; pg_backend_pid()"/>
+		</exec>
+		<exec executable="sudo" failonerror="on">
+			<arg value="-n"/>
+			<arg value="-u"/>
+			<arg value="postgres"/>
+			<arg value="psql"/>
+			<arg value="-d"/>
+			<arg value="postgres"/>
+			<arg value="--set"/>
+			<arg value="ON_ERROR_STOP=1"/>
+			<arg value="-c"/>
+			<arg value="drop database if exists ${dbname}"/>
+		</exec>
+		<exec executable="sudo" failonerror="on">
+			<arg value="-n"/>
+			<arg value="-u"/>
+			<arg value="postgres"/>
+			<arg value="psql"/>
+			<arg value="-d"/>
+			<arg value="postgres"/>
+			<arg value="--set"/>
+			<arg value="ON_ERROR_STOP=1"/>
+			<arg value="-c"/>
+			<arg value="create database ${dbname} OWNER ${dbuser} ENCODING 'UTF8' TEMPLATE template0"/>
+		</exec>
+		<antcall target="load-db-postgresql-base" inheritAll="true"/>
 	</target>
 
 	<target name="init-api-postgresql" depends="create-configs,make-dbschema,create-db-postgresql">
@@ -580,7 +990,7 @@
 	<target name="init-dast-mysql" depends="create-frontend-configs,make-dbschema,create-db-mysql"/>
 
 	<target name="test-phpunit" depends="init-common">
-		<exec executable="phpunit" dir="ui/tests/unit" failonerror="off">
+		<exec executable="${phpunit_bin}" dir="ui/tests/unit" failonerror="off">
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--do-not-cache-result"/>
 			<arg line="${phpunit_filter}"/>
@@ -588,36 +998,44 @@
 		</exec>
 	</target>
 
-	<target name="test-frontend">
-		<exec executable="phpunit" dir="ui/tests" failonerror="off">
+	<target name="test-frontend" depends="create-configs,prepare-frontend-postgresql-fixtures,init-frontend-modules,ensure-ui-webdriver,reset-frontend-session-storage,ensure-frontend-webserver,ensure-frontend-webdriver">
+		<exec executable="${phpunit_bin}" dir="ui" failonerror="off" resultproperty="frontend.phpunit.exit_code">
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
-			<arg line="--bootstrap=bootstrap.php"/>
+			<arg line="--configuration=tests/phpunit.xml"/>
 			<arg line="--do-not-cache-result"/>
 			<arg line="--dont-report-useless-tests"/>
+			<arg line="${frontend.phpunit_scope_arg}"/>
 			<arg line="${phpunit_filter}"/>
-			<arg line="frontend.php"/>
+			<arg line="${frontend.phpunit_target_arg}"/>
 		</exec>
+		<fail message="Frontend PHPUnit failed with exit code ${frontend.phpunit.exit_code}.">
+			<condition>
+				<not>
+					<equals arg1="${frontend.phpunit.exit_code}" arg2="0"/>
+				</not>
+			</condition>
+		</fail>
 	</target>
 
-	<target name="test-api">
-		<exec executable="phpunit" dir="ui/tests" failonerror="off">
+	<target name="test-api" depends="create-configs">
+		<exec executable="${phpunit_bin}" dir="ui" failonerror="off">
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
-			<arg line="--bootstrap=bootstrap.php"/>
+			<arg line="--bootstrap=tests/bootstrap.php"/>
 			<arg line="--do-not-cache-result"/>
 			<arg line="${phpunit_filter}"/>
-			<arg line="api_json/ApiJsonTests.php"/>
+			<arg line="tests/api_json/ApiJsonTests.php"/>
 		</exec>
 	</target>
 
-	<target name="test-integration">
-		<exec executable="phpunit" dir="ui/tests" failonerror="off">
+	<target name="test-integration" depends="create-configs,init-integration">
+		<exec executable="${phpunit_bin}" dir="ui" failonerror="off">
 			<env key="UBSAN_OPTIONS" value="print_stacktrace=1:suppressions=../tests/ubsan.supp"/>
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
-			<arg line="--bootstrap=bootstrap.php"/>
+			<arg line="--bootstrap=tests/bootstrap.php"/>
 			<arg line="--do-not-cache-result"/>
 			<arg line="--dont-report-useless-tests"/>
 			<arg line="${phpunit_filter}"/>
-			<arg line="integration/IntegrationTests.php"/>
+			<arg line="tests/integration/IntegrationTests.php"/>
 		</exec>
 	</target>
 
