@@ -97,6 +97,8 @@ $timeline = getTimeSelectorPeriod([
 	'to' => getRequest('to')
 ]);
 
+session_write_close();
+
 $graph = new CLineGraphDraw($dbGraph['graphtype']);
 
 if (getRequest('widget_view') === '1') {

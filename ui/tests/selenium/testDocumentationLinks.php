@@ -168,6 +168,25 @@ class testDocumentationLinks extends CWebTest {
 				'type' => ITEM_TYPE_INTERNAL
 			]
 		])['itemids'][0];
+
+		$modules = CDataHelper::call('module.get', [
+			'output' => ['moduleid', 'status'],
+			'filter' => ['id' => ['trafficlight']]
+		]);
+
+		if ($modules === []) {
+			CDataHelper::call('module.create', [[
+				'id' => 'trafficlight',
+				'relative_path' => 'widgets/trafficlight',
+				'status' => MODULE_STATUS_ENABLED
+			]]);
+		}
+		elseif ($modules[0]['status'] != MODULE_STATUS_ENABLED) {
+			CDataHelper::call('module.update', [[
+				'moduleid' => $modules[0]['moduleid'],
+				'status' => MODULE_STATUS_ENABLED
+			]]);
+		}
 	}
 
 	/**
@@ -2507,6 +2526,24 @@ class testDocumentationLinks extends CWebTest {
 					],
 					'widget_type' => 'Gauge',
 					'doc_link' => '/en/manual/web_interface/frontend_sections/dashboards/widgets/gauge'
+				]
+			],
+			// #242a Start creating Traffic light widget.
+			[
+				[
+					'url' => 'zabbix.php?action=dashboard.view&dashboardid=1',
+					'actions' => [
+						[
+							'callback' => 'openFormWithLink',
+							'element' => 'button:Edit dashboard'
+						],
+						[
+							'callback' => 'openFormWithLink',
+							'element' => 'id:dashboard-add-widget'
+						]
+					],
+					'widget_type' => 'Traffic light',
+					'doc_link' => '/en/manual/web_interface/frontend_sections/dashboards/widgets/traffic_light'
 				]
 			],
 			// #243 Connectors list view.
