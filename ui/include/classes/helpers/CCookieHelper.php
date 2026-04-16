@@ -16,6 +16,18 @@
 
 class CCookieHelper {
 
+	private static function getCookiePath(): string {
+		$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+		if (!is_string($path) || $path === '') {
+			return '/';
+		}
+
+		$path = dirname($path);
+
+		return ($path === '' || $path === '.') ? '/' : $path;
+	}
+
 	/**
 	 * Check if cookie exists.
 	 *
@@ -48,10 +60,7 @@ class CCookieHelper {
 	 * @return boolean
 	 */
 	public static function set(string $name, string $value, int $time = 0): bool {
-		$path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-		$path = rtrim(substr($path, 0, strrpos($path, '/')), '/');
-
-		if (!setcookie($name, $value, $time, $path, '', HTTPS, true)) {
+		if (!setcookie($name, $value, $time, self::getCookiePath(), '', HTTPS, true)) {
 			return false;
 		}
 
@@ -68,7 +77,7 @@ class CCookieHelper {
 	 * @return boolean
 	 */
 	public static function unset(string $name): bool {
-		if (!setcookie($name, '', 0)) {
+		if (!setcookie($name, '', 0, self::getCookiePath())) {
 			return false;
 		}
 

@@ -6,4 +6,11 @@
 		convertNoticesToExceptions="true"
 		convertWarningsToExceptions="true"
 		>
+	<testsuites>
+		<testsuite name="frontend">
+			<directory prefix="test" suffix=".php">general</directory>
+			<directory prefix="test" suffix=".php">selenium</directory>
+			<exclude>selenium/modules</exclude>
+		</testsuite>
+	</testsuites>
 </phpunit>

@@ -1,0 +1,74 @@
+div.dashboard-widget-trafficlight {
+	.trafficlight-widget {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		height: 100%;
+		padding: 10px 0;
+	}
+
+	.trafficlight-lamps {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		align-items: center;
+	}
+
+	.trafficlight-lamp {
+		width: 44px;
+		height: 44px;
+		border: 1px solid rgba($ui-border-color, .9);
+		border-radius: 50%;
+		background: $form-border-color;
+		opacity: .3;
+		transition: opacity .15s ease-in-out, box-shadow .15s ease-in-out, transform .15s ease-in-out;
+	}
+
+	.trafficlight-lamp-green {
+		background: $status-green-bg-color;
+	}
+
+	.trafficlight-lamp-yellow {
+		background: $status-yellow-bg-color;
+	}
+
+	.trafficlight-lamp-red {
+		background: $status-red-bg-color;
+	}
+
+		.trafficlight-lamp.is-active {
+			opacity: 1;
+			box-shadow: 0 0 0 3px rgba(255, 255, 255, .15);
+			transform: scale(1.04);
+		}
+
+	.trafficlight-summary {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		align-items: center;
+		text-align: center;
+	}
+
+	.trafficlight-state-label {
+		font-size: 18px;
+		font-weight: 700;
+		line-height: 1.2;
+	}
+
+	.trafficlight-state-counts {
+		color: $font-alt-color;
+		font-size: 12px;
+		line-height: 1.4;
+	}
+
+	.trafficlight-widget.is-state-no-data {
+		.trafficlight-lamp {
+			opacity: .12;
+			box-shadow: none;
+			transform: none;
+		}
+	}
+}

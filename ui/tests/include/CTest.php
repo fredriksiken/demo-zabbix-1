@@ -119,6 +119,46 @@ class CTest extends TestCase {
 	}
 
 	/**
+	 * PHPUnit 9 no longer provides TestCase::getAnnotations(), but this harness still expects the
+	 * legacy array shape for its custom docblock-driven callbacks and fixtures.
+	 */
+	protected function getAnnotations() {
+		return [
+			'class' => $this->parseAnnotations($this->getDocComment(new ReflectionClass($this))),
+			'method' => $this->parseAnnotations(
+				$this->getDocComment(new ReflectionMethod($this, $this->getName(false)))
+			)
+		];
+	}
+
+	private function getDocComment(Reflector $reflector): string {
+		$comment = $reflector->getDocComment();
+
+		return $comment === false ? '' : $comment;
+	}
+
+	private function parseAnnotations(string $comment): array {
+		$annotations = [];
+
+		foreach (preg_split('/\R/', $comment) as $line) {
+			if (!preg_match('/^\s*\*\s*@([A-Za-z0-9_-]+)(?:\s+(.*))?$/', $line, $matches)) {
+				continue;
+			}
+
+			$name = $matches[1];
+			$value = array_key_exists(2, $matches) ? trim($matches[2]) : '';
+
+			if (!array_key_exists($name, $annotations)) {
+				$annotations[$name] = [];
+			}
+
+			$annotations[$name][] = $value;
+		}
+
+		return $annotations;
+	}
+
+	/**
 	 * Get annotations by type name.
 	 * Helper function for method / class annotation processing.
 	 *
