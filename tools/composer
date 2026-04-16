@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cache_dir="${COMPOSER_CACHE_DIR:-$script_dir/.cache}"
+composer_version="${COMPOSER_VERSION:-stable}"
+phar_path="${COMPOSER_PHAR:-$cache_dir/composer-${composer_version}.phar}"
+
+if [[ "$composer_version" == "stable" ]]; then
+	download_url="https://getcomposer.org/download/latest-stable/composer.phar"
+else
+	download_url="https://getcomposer.org/download/${composer_version}/composer.phar"
+fi
+
+if [[ ! -f "$phar_path" ]]; then
+	mkdir -p "$cache_dir"
+	tmp_path="${phar_path}.tmp"
+
+	curl --fail --location --retry 3 --output "$tmp_path" "$download_url"
+	chmod 0755 "$tmp_path"
+	mv "$tmp_path" "$phar_path"
+fi
+
+exec php "$phar_path" "$@"

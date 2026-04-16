@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+	echo "Usage: $0 {start|stop|status|probe}" >&2
+	exit 2
+}
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/.." && pwd)"
+
+host="${FRONTEND_SERVER_HOST:-127.0.0.1}"
+port="${FRONTEND_SERVER_PORT:-18080}"
+docroot="${FRONTEND_SERVER_DOCROOT:-${repo_root}/ui}"
+pid_file="${FRONTEND_SERVER_PID_FILE:-${repo_root}/runtime/frontend-webserver.pid}"
+log_file="${FRONTEND_SERVER_LOG_FILE:-${repo_root}/runtime/frontend-webserver.log}"
+session_dir="${FRONTEND_SESSION_DIR:-${repo_root}/runtime/php-sessions}"
+php_bin="${PHP_BIN:-php}"
+curl_bin="${CURL_BIN:-curl}"
+php_cli_server_workers="${PHP_CLI_SERVER_WORKERS:-4}"
+
+command="${1:-}"
+url="http://${host}:${port}/"
+api_url="${url}api_jsonrpc.php"
+
+mkdir -p "$(dirname "${pid_file}")" "$(dirname "${log_file}")" "${session_dir}"
+
+cleanup_stale_pid() {
+	if [[ -f "${pid_file}" ]]; then
+		local pid
+		pid="$(<"${pid_file}")"
+
+		if [[ -z "${pid}" ]] || ! kill -0 "${pid}" 2>/dev/null; then
+			rm -f "${pid_file}"
+		fi
+	fi
+}
+
+server_pid() {
+	if [[ -f "${pid_file}" ]]; then
+		cat "${pid_file}"
+	fi
+}
+
+server_running() {
+	local pid
+
+	pid="$(server_pid)"
+	[[ -n "${pid}" ]] && kill -0 "${pid}" 2>/dev/null
+}
+
+probe_server() {
+	local http_code
+
+	http_code="$("${curl_bin}" --silent --show-error --output /dev/null --write-out "%{http_code}" \
+		--max-time 5 "${api_url}" || true)"
+
+	[[ "${http_code}" == "200" || "${http_code}" == "412" ]]
+}
+
+start_server() {
+	cleanup_stale_pid
+
+	if probe_server; then
+		exit 0
+	fi
+
+	if server_running; then
+		echo "Frontend web server is running but ${api_url} is still unavailable." >&2
+		exit 1
+	fi
+
+	(
+		cd "${repo_root}"
+		if command -v setsid >/dev/null 2>&1; then
+			PHP_CLI_SERVER_WORKERS="${php_cli_server_workers}" \
+				setsid "${php_bin}" -d "session.save_path=${session_dir}" \
+					-S "${host}:${port}" -t "${docroot}" >>"${log_file}" 2>&1 < /dev/null &
+		else
+			PHP_CLI_SERVER_WORKERS="${php_cli_server_workers}" \
+				nohup "${php_bin}" -d "session.save_path=${session_dir}" \
+					-S "${host}:${port}" -t "${docroot}" >>"${log_file}" 2>&1 < /dev/null &
+		fi
+		echo $! > "${pid_file}"
+	)
+
+	for _ in $(seq 1 50); do
+		if probe_server; then
+			exit 0
+		fi
+
+		sleep 0.2
+	done
+
+	echo "Frontend web server failed to serve ${api_url}. See ${log_file}." >&2
+	exit 1
+}
+
+stop_server() {
+	cleanup_stale_pid
+
+	if ! server_running; then
+		rm -f "${pid_file}"
+		exit 0
+	fi
+
+	local pid
+	pid="$(server_pid)"
+	kill "${pid}"
+
+	for _ in $(seq 1 25); do
+		if ! kill -0 "${pid}" 2>/dev/null; then
+			rm -f "${pid_file}"
+			exit 0
+		fi
+
+		sleep 0.2
+	done
+
+	kill -9 "${pid}" 2>/dev/null || true
+	rm -f "${pid_file}"
+}
+
+status_server() {
+	cleanup_stale_pid
+
+	if server_running; then
+		echo "running $(server_pid) ${url}"
+		exit 0
+	fi
+
+	echo "stopped ${url}"
+	exit 1
+}
+
+case "${command}" in
+	start)
+		start_server
+		;;
+	stop)
+		stop_server
+		;;
+	status)
+		status_server
+		;;
+	probe)
+		if probe_server; then
+			echo "${api_url}"
+			exit 0
+		fi
+
+		exit 1
+		;;
+	*)
+		usage
+		;;
+esac
