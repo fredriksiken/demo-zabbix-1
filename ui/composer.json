@@ -11,6 +11,9 @@
 		"duosecurity/duo_universal_php": "v1.1.1",
 		"erusev/parsedown": "^1.7"
 	},
+	"require-dev": {
+		"php-webdriver/webdriver": "^1.15"
+	},
 	"autoload": {
 		"psr-4": {
 			"SCIM\\": "include/classes/scim/"

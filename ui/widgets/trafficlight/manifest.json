@@ -1,0 +1,30 @@
+{
+	"manifest_version": 2.0,
+	"id": "trafficlight",
+	"type": "widget",
+	"name": "Traffic light",
+	"namespace": "TrafficLight",
+	"version": "1.0",
+	"author": "Zabbix",
+	"description": "Displays aggregated item health as a traffic-light indicator.",
+	"url": "web_interface/frontend_sections/dashboards/widgets/traffic_light",
+	"widget": {
+		"size": {
+			"width": 6,
+			"height": 4
+		},
+		"in": {
+			"hostids": {
+				"type": "_hostids"
+			},
+			"groupids": {
+				"type": "_hostgroupids"
+			}
+		}
+	},
+	"actions": {
+		"widget.trafficlight.view": {
+			"class": "WidgetView"
+		}
+	}
+}
