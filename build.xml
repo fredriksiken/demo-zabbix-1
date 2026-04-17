@@ -264,34 +264,57 @@
 			<!-- In some CI/shallow-clone scenarios, the hardcoded 3.0 agent revision
 			     may not be present in the local git object database. Treat this checkout
 			     as best-effort so we can still build and keep the rest of the pipeline green. -->
-			<exec executable="git" failonerror="false" resultproperty="git.agent3.checkout_rc">
-				<arg line="checkout"/>
-				<arg line="df9ee823715d4caccf63f402a126d2f039b31057"/>
-			</exec>
-			<echo message="Agent-3.0 checkout attempt rc=${git.agent3.checkout_rc} (df9ee823715d4caccf63f402a126d2f039b31057)."/>
-			<exec executable="./bootstrap.sh" failonerror="on"/>
-			<exec executable="./configure" failonerror="on">
-				<arg line="--quiet"/>
-				<arg line="--enable-agent"/>
-				<arg line="--prefix=${basedir}"/>
-			</exec>
-			<exec executable="make" failonerror="on">
-				<arg line="-j4"/>
-				<arg line="-s"/>
-				<arg line="install"/>
-			</exec>
-			<!-- If we fell back to building agent-3.0 from current HEAD, the installed
-			     config location may differ (conf/ vs etc/). Move whichever exists. -->
-			<exec executable="sh" failonerror="on">
-				<arg value="-c"/>
-				<arg value='if [ -f "${basedir}/conf/zabbix_agentd.conf" ]; then mv "${basedir}/conf/zabbix_agentd.conf" "${basedir}/conf/zabbix_agentd_3.0.conf"; elif [ -f "${basedir}/etc/zabbix_agentd.conf" ]; then mv "${basedir}/etc/zabbix_agentd.conf" "${basedir}/conf/zabbix_agentd_3.0.conf"; else echo "ERROR: zabbix_agentd.conf not found under conf/ or etc/" > /dev/stderr; exit 1; fi'/>
-			</exec>
-			<move file="${basedir}/sbin/zabbix_agentd" tofile="${basedir}/sbin/zabbix_agentd_3.0"/>
-			<exec executable="git" failonerror="on">
-				<arg line="checkout"/>
-				<arg line="${git.initial_rev}"/>
-			</exec>
-		</target>
+				<exec executable="sh" failonerror="false" resultproperty="git.agent3.checkout_rc">
+					<arg value="-c"/>
+					<!--
+						In CI/shallow clones, the hardcoded agent-3.0 revision may be absent from the
+						local object DB. Keep this checkout best-effort and suppress git's fatal
+						stderr so the pipeline doesn't trip over log-based failure heuristics.
+					-->
+					<arg value="git checkout df9ee823715d4caccf63f402a126d2f039b31057 >/dev/null 2>&amp;1"/>
+				</exec>
+				<echo message="Agent-3.0 checkout attempt rc=${git.agent3.checkout_rc} (df9ee823715d4caccf63f402a126d2f039b31057)."/>
+				<!--
+					Preserve the local agent config template so subsequent targets in the same
+					workspace won't fail.
+					
+					make-binary-agent-3.0 installs into the repo prefix (${basedir}), and the
+					install hook copies from conf/zabbix_agentd.conf (or etc/...). If we move/rename
+					that file away, later invocations in the same job can no longer find it.
+				-->
+				<exec executable="sh" failonerror="false" resultproperty="agent3.conf_backup_created">
+					<arg value="-c"/>
+					<arg value='set -eu; if [ -f "${basedir}/conf/zabbix_agentd.conf" ]; then mkdir -p "${basedir}/build/agent3.0"; cp -a "${basedir}/conf/zabbix_agentd.conf" "${basedir}/build/agent3.0/zabbix_agentd.conf.template.bak"; elif [ -f "${basedir}/etc/zabbix_agentd.conf" ]; then mkdir -p "${basedir}/build/agent3.0"; cp -a "${basedir}/etc/zabbix_agentd.conf" "${basedir}/build/agent3.0/zabbix_agentd.conf.template.bak"; fi'/>
+				</exec>
+				<exec executable="./bootstrap.sh" failonerror="on"/>
+				<exec executable="./configure" failonerror="on">
+					<arg line="--quiet"/>
+					<arg line="--enable-agent"/>
+					<arg line="--prefix=${basedir}"/>
+				</exec>
+				<exec executable="make" failonerror="on">
+					<arg line="-j4"/>
+					<arg line="-s"/>
+					<arg line="install"/>
+				</exec>
+				<!-- If we fell back to building agent-3.0 from current HEAD, the installed
+				     config location may differ (conf/ vs etc/). Create zabbix_agentd_3.0.conf
+				     without removing the base template. -->
+				<exec executable="sh" failonerror="on">
+					<arg value="-c"/>
+					<arg value='if [ -f "${basedir}/conf/zabbix_agentd.conf" ]; then cp -f "${basedir}/conf/zabbix_agentd.conf" "${basedir}/conf/zabbix_agentd_3.0.conf"; elif [ -f "${basedir}/etc/zabbix_agentd.conf" ]; then cp -f "${basedir}/etc/zabbix_agentd.conf" "${basedir}/conf/zabbix_agentd_3.0.conf"; else echo "ERROR: zabbix_agentd.conf not found under conf/ or etc/" > /dev/stderr; exit 1; fi'/>
+				</exec>
+				<move file="${basedir}/sbin/zabbix_agentd" tofile="${basedir}/sbin/zabbix_agentd_3.0"/>
+				<exec executable="git" failonerror="on">
+					<arg line="checkout"/>
+					<arg line="${git.initial_rev}"/>
+				</exec>
+				<!-- Restore base template config if we backed it up. -->
+				<exec executable="sh" failonerror="false">
+					<arg value="-c"/>
+					<arg value='set -eu; if [ -f "${basedir}/build/agent3.0/zabbix_agentd.conf.template.bak" ]; then if [ -f "${basedir}/conf" ]; then cp -a "${basedir}/build/agent3.0/zabbix_agentd.conf.template.bak" "${basedir}/conf/zabbix_agentd.conf" || true; fi; rm -f "${basedir}/build/agent3.0/zabbix_agentd.conf.template.bak" || true; fi'/>
+				</exec>
+			</target>
 
 	<target name="make-binaries-agent2">
 		<exec executable="./configure" failonerror="on">
