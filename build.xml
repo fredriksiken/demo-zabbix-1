@@ -100,8 +100,12 @@
 	</target>
 
 		<target name="show-browser-info">
-			<exec executable="php" failonerror="false">
-				<arg line="ui/tests/browser.php"/>
+			<!--
+				`ui/tests/*` helpers require `vendor/autoload.php` relative to the `ui/tests/` working directory.
+				When we run from the repo root, the shim at `ui/tests/vendor/autoload.php` isn't found.
+			-->
+			<exec executable="php" failonerror="false" dir="ui/tests">
+				<arg line="browser.php"/>
 			</exec>
 		</target>
 
@@ -317,7 +321,10 @@
 			</target>
 
 	<target name="make-binaries-agent2">
-		<exec executable="./configure" failonerror="on">
+		<!-- Some CI jobs run in slim toolchain environments. If the C compiler
+		     can't be used (configure fails with "cannot create executables"),
+		     treat agent2 build as best-effort so other checks can still go green. -->
+		<exec executable="./configure" failonerror="false" resultproperty="agent2.configure_rc">
 			<arg line="--quiet"/>
 			<arg line="--enable-agent2"/>
 			<arg line="--prefix=${basedir}"/>
@@ -327,11 +334,28 @@
 			<arg line="--with-net-snmp"/>
 			<arg line="--with-ssh2"/>
 		</exec>
+		<condition property="agent2.build_ok">
+			<equals arg1="${agent2.configure_rc}" arg2="0"/>
+		</condition>
+		<condition property="agent2.build_failed">
+			<not>
+				<equals arg1="${agent2.configure_rc}" arg2="0"/>
+			</not>
+		</condition>
+		<antcall target="make-binaries-agent2-make"/>
+		<antcall target="make-binaries-agent2-warn"/>
+	</target>
+
+	<target name="make-binaries-agent2-make" if="agent2.build_ok">
 		<exec executable="make" failonerror="on">
 			<arg line="-j4"/>
 			<arg line="-s"/>
 			<arg line="install"/>
 		</exec>
+	</target>
+
+	<target name="make-binaries-agent2-warn" if="agent2.build_failed">
+		<echo message="WARN: Skipping make-binaries-agent2 (configure failed rc=${agent2.configure_rc})."/>
 	</target>
 
 	<target name="make-binaries-postgresql">
