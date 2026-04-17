@@ -9304,3 +9304,43 @@ z-select.z-select-host-interface li[disabled] .description:not(:empty) {
   content: " /"; }
 .breadcrumbs > :last-child::after {
   content: ""; }
+
+/* Traffic light widget */
+div.dashboard-widget-trafficlight .trafficlight-widget {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%; }
+div.dashboard-widget-trafficlight .trafficlight-lamps {
+  display: flex;
+  gap: 8px;
+  align-items: center; }
+div.dashboard-widget-trafficlight .trafficlight-lamp {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  opacity: .25; }
+div.dashboard-widget-trafficlight .trafficlight-lamp-green {
+  background-color: #34af67; }
+div.dashboard-widget-trafficlight .trafficlight-lamp-yellow {
+  background-color: #f1a50b; }
+div.dashboard-widget-trafficlight .trafficlight-lamp-red {
+  background-color: #d64e4e; }
+div.dashboard-widget-trafficlight .trafficlight-lamp.is-active {
+  opacity: 1; }
+div.dashboard-widget-trafficlight .trafficlight-lamp.is-inactive {
+  opacity: .25; }
+div.dashboard-widget-trafficlight .trafficlight-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px; }
+div.dashboard-widget-trafficlight .trafficlight-state-label {
+  font-weight: 600; }
+div.dashboard-widget-trafficlight .trafficlight-state-counts {
+  color: inherit; }
+div.dashboard-widget-trafficlight.is-state-red .trafficlight-state-label {
+  color: #d64e4e; }
+div.dashboard-widget-trafficlight.is-state-yellow .trafficlight-state-label {
+  color: #f1a50b; }
+div.dashboard-widget-trafficlight.is-state-green .trafficlight-state-label {
+  color: #34af67; }

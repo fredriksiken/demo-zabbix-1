@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/.." && pwd)"
+cache_dir="${PHPUNIT_CACHE_DIR:-${repo_root}/tools/.cache}"
+phpunit_version="${PHPUNIT_VERSION:-9.6.34}"
+phar_path="${PHPUNIT_PHAR:-${cache_dir}/phpunit-${phpunit_version}.phar}"
+download_url="${PHPUNIT_PHAR_URL:-https://phar.phpunit.de/phpunit-${phpunit_version}.phar}"
+
+needs_frontend_stack=false
+for arg in "$@"; do
+	case "$arg" in
+		*frontend.php|*selenium/*|*testDocumentationLinks.php)
+			needs_frontend_stack=true
+			break
+			;;
+	esac
+done
+
+if [[ "$needs_frontend_stack" == true ]]; then
+	"${repo_root}/tools/frontend-webserver" start
+	"${repo_root}/tools/frontend-webdriver" start
+
+	bootstrap_file="${repo_root}/ui/tests/bootstrap.php"
+	if [[ -f "$bootstrap_file" ]]; then
+		advertise_host="${FRONTEND_SERVER_ADVERTISE_HOST:-172.17.0.1}"
+		perl -0pi -e "s#define\\('PHPUNIT_URL',\\s*'[^']*'\\);#define('PHPUNIT_URL', 'http://${advertise_host}:18080/');#" "$bootstrap_file"
+	fi
+fi
+
+if [[ ! -f "$phar_path" ]]; then
+	mkdir -p "$cache_dir"
+	tmp_path="${phar_path}.tmp"
+	curl --fail --location --retry 3 --output "$tmp_path" "$download_url"
+	chmod 0755 "$tmp_path"
+	mv "$tmp_path" "$phar_path"
+fi
+
+exec php "$phar_path" "$@"

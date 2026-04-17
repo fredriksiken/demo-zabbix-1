@@ -94,6 +94,7 @@ require_once __DIR__.'/dashboardWidgets/testDashboardURLWidget.php';
 require_once __DIR__.'/dashboardWidgets/testDashboardWebMonitoringWidget.php';
 require_once __DIR__.'/dashboardWidgets/testDashboardWidgetBroadcastedData.php';
 require_once __DIR__.'/dashboardWidgets/testDashboardWidgetCommunication.php';
+require_once __DIR__.'/dashboardWidgets/testDashboardTrafficLightWidget.php';
 
 // Event correlation.
 require_once __DIR__.'/eventCorrelation/testFormEventCorrelation.php';
@@ -444,6 +445,7 @@ class SeleniumTests {
 		$suite->addTestSuite('testDashboardWebMonitoringWidget');
 		$suite->addTestSuite('testDashboardWidgetBroadcastedData');
 		$suite->addTestSuite('testDashboardWidgetCommunication');
+		$suite->addTestSuite('testDashboardTrafficLightWidget');
 
 		// Event correlation.
 		$suite->addTestSuite('testFormEventCorrelation');

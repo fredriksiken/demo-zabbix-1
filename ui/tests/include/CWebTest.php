@@ -74,7 +74,9 @@ class CWebTest extends CTest {
 	/**
 	 * @inheritdoc
 	 */
-	protected function onNotSuccessfulTest($exception): void {
+	protected function onNotSuccessfulTest(\Throwable $exception): never {
+		$this->zbx_has_failed = true;
+
 		if ($this->browser_errors !== null && $exception instanceof Exception) {
 			CExceptionHelper::setMessage($exception, $exception->getMessage()."\n\n".$this->browser_errors);
 		}
@@ -105,6 +107,9 @@ class CWebTest extends CTest {
 		}
 
 		parent::onNotSuccessfulTest($exception);
+
+		// PHPUnit's base implementation terminates the test by throwing.
+		throw $exception;
 	}
 
 	/**

@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+	echo "Usage: $0 {start|stop|status|probe}" >&2
+	exit 2
+}
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/.." && pwd)"
+repo_name="$(basename "${repo_root}")"
+
+docker_bin="${DOCKER_BIN:-docker}"
+image="${SELENIUM_STANDALONE_IMAGE:-selenium/standalone-chrome@sha256:b36b0749f77dce2cbf9a5bc7ac02b0364c91c3a149c5c36cd46dfb04ca2b39a4}"
+container_name="${SELENIUM_CONTAINER_NAME:-${repo_name}-frontend-webdriver}"
+status_url="${SELENIUM_STATUS_URL:-http://127.0.0.1:4444/wd/hub/status}"
+shm_size="${SELENIUM_SHM_SIZE:-2g}"
+
+command="${1:-}"
+
+container_exists() {
+	"${docker_bin}" ps -a --format '{{.Names}}' | grep -Fxq "${container_name}"
+}
+
+container_running() {
+	"${docker_bin}" ps --format '{{.Names}}' | grep -Fxq "${container_name}"
+}
+
+probe_webdriver() {
+	local body
+
+	body="$(curl --silent --show-error --max-time 5 "${status_url}" || true)"
+	[[ "${body}" == *'"ready":true'* || "${body}" == *'"ready": true'* ]]
+}
+
+start_webdriver() {
+	if probe_webdriver; then
+		exit 0
+	fi
+
+	if container_running; then
+		# The container can be up while the WebDriver service is not yet ready (or has wedged).
+		# Since the focused Selenium suites treat "not ready" as a hard blocker, make start() self-healing
+		# by restarting the container and re-probing readiness.
+		echo "Frontend WebDriver container is running but ${status_url} is not ready; restarting..." >&2
+		"${docker_bin}" rm -f "${container_name}" >/dev/null || true
+	fi
+
+	if container_exists; then
+		"${docker_bin}" rm -f "${container_name}" >/dev/null
+	fi
+
+	"${docker_bin}" run -d --rm \
+		--name "${container_name}" \
+		--network host \
+		--shm-size "${shm_size}" \
+		-e SE_NODE_OVERRIDE_MAX_SESSIONS=true \
+		-e SE_NODE_MAX_SESSIONS=1 \
+		"${image}" >/dev/null
+
+	ready_timeout_sec="${SELENIUM_READY_TIMEOUT_SEC:-240}"
+	for _ in $(seq 1 "${ready_timeout_sec}"); do
+		if probe_webdriver; then
+			exit 0
+		fi
+
+		sleep 1
+	done
+
+	echo "Frontend WebDriver failed to become ready at ${status_url}." >&2
+	exit 1
+}
+
+stop_webdriver() {
+	if container_exists; then
+		"${docker_bin}" rm -f "${container_name}" >/dev/null
+	fi
+}
+
+status_webdriver() {
+	if container_running; then
+		echo "running ${container_name} ${status_url}"
+		exit 0
+	fi
+
+	echo "stopped ${container_name} ${status_url}"
+	exit 1
+}
+
+case "${command}" in
+	start)
+		start_webdriver
+		;;
+	stop)
+		stop_webdriver
+		;;
+	status)
+		status_webdriver
+		;;
+	probe)
+		if probe_webdriver; then
+			echo "${status_url}"
+			exit 0
+		fi
+
+		exit 1
+		;;
+	*)
+		usage
+		;;
+esac

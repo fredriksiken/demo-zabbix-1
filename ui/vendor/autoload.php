@@ -20,6 +20,24 @@ if (PHP_VERSION_ID < 50600) {
     );
 }
 
+// Minimal runtime autoload fallback for the Selenium/WebDriver client.
+//
+// Some repo environments ship without Composer-installed facebook/webdriver/php-webdriver,
+// but the Selenium test harness still references `Facebook\\WebDriver\\*` classes.
+// Provide a targeted PSR-4-style autoload for that namespace so the harness can run.
+spl_autoload_register(function (string $class): void {
+	$prefix = 'Facebook\\WebDriver\\';
+	if (strncmp($class, $prefix, strlen($prefix)) !== 0) {
+		return;
+	}
+
+	$relativeClass = substr($class, strlen($prefix));
+	$path = __DIR__ . '/php-webdriver/webdriver/lib/' . str_replace('\\', '/', $relativeClass) . '.php';
+	if (is_file($path)) {
+		require_once $path;
+	}
+});
+
 require_once __DIR__ . '/composer/autoload_real.php';
 
 return ComposerAutoloaderInit3e832710df7ec8c92736d5724fad7cab::getLoader();

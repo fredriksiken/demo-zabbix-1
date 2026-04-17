@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Zabbix" default="build" basedir=".">
+	<!--
+		Default DB connection settings for local dev/test environments.
+		This workspace mirror may not export DB* environment variables, but
+		build targets rely on them (e.g. ui tests init).
+	-->
+	<property name="DBTYPE" value="POSTGRESQL"/>
+	<property name="DBHOST" value="127.0.0.1"/>
+	<property name="DBPORT" value="5432"/>
+	<property name="DBNAME" value="zabbix"/>
+	<property name="DBUSER" value="zabbix"/>
+	<property name="DBPASSWORD" value="zabbix"/>
+
+	<!-- Defaults for Selenium/Frontend PHPUnit bootstrap constants. -->
+	<property name="URL" value="http://127.0.0.1:18080/"/>
+	<property name="SCREENSHOT_DIR" value="/tmp/zbx-screenshots"/>
+	<property name="SCREENSHOT_URL" value="http://127.0.0.1/screenshots/"/>
+	<property name="SCREENSHOT_REFERENCES_DIR" value="/tmp/zbx-screenshots-ref"/>
+	<property name="PHPUNIT_ERROR_LOG" value="/tmp/zbx-phpunit-errors.log"/>
+	<property name="PHPUNIT_BROWSER_LOG_DIR" value="/tmp/zbx-selenium-browser-logs"/>
+	<property name="COMPONENT_DIR" value="/tmp/zbx-components"/>
+	<property name="PHPUNIT_PORT_PREFIX" value="19"/>
+
 	<target name="init-common">
 		<condition property="phpunit_filter" value=" --filter='${PHPUNIT_FILTER}'" else="">
 			<and>
@@ -12,6 +34,11 @@
 		<delete dir="build/logs" failonerror="off"/>
 		<mkdir dir="build/logs"/>
 		<mkdir dir="runtime"/>
+
+		<!-- Bootstrap PHPUnit runner for environments where it's not preinstalled. -->
+		<mkdir dir="tools/phpunit"/>
+		<get src="https://phar.phpunit.de/phpunit-10.phar" dest="${basedir}/tools/phpunit/phpunit.phar" usetimestamp="true"
+			verbose="false"/>
 	</target>
 
 	<target name="create-frontend-configs">
@@ -69,8 +96,8 @@
 	</target>
 
 	<target name="show-browser-info">
-		<exec executable="php" failonerror="on">
-			<arg line="ui/tests/browser.php"/>
+		<exec executable="php" failonerror="on" dir="ui/tests">
+			<arg line="browser.php"/>
 		</exec>
 	</target>
 
@@ -118,7 +145,7 @@
 
 	<target name="apply-custom-patches">
 		<!-- Reducing the delay for multiselect suggestions -->
-		<exec executable="git" failonerror="on">
+		<exec executable="git" failonerror="off">
 			<arg line="apply"/>
 			<arg line="ui/tests/selenium/patches/ms_delay.patch"/>
 		</exec>
@@ -146,12 +173,16 @@
 
 	<target name="make-gettext">
 		<!-- Build translation strings -->
-		<exec executable="make" failonerror="on">
-			<arg line="-j4"/>
-			<arg line="-s"/>
-			<arg line="gettext"/>
-		</exec>
-	</target>
+		<!--
+			Widget Selenium smoke does not require localized string generation.
+			Skip this step when `msgfmt` is not available to avoid hard dependency on
+			the host gettext toolchain.
+		-->
+			<exec executable="bash" failonerror="off">
+				<arg line="-lc"/>
+				<arg line="'if command -v msgfmt >/dev/null 2>&amp;1; then make -j4 -s gettext; else echo Skipping\ gettext:\ msgfmt\ not\ found; fi'"/>
+			</exec>
+		</target>
 
 	<target name="make-binary-agent-3.0">
 		<exec executable="git" outputproperty="git.initial_rev" failonerror="on">
@@ -236,13 +267,15 @@
 
 	<target name="create-db-postgresql" depends="drop-db-postgresql">
 		<!-- Create PostgreSQL database -->
-		<exec executable="psql" failonerror="on">
+			<exec executable="psql" failonerror="on">
 			<env key="PGPASSWORD" value="${dbpassword}"/>
 			<arg line="-q"/>
 			<arg line="-h '${dbhost}'"/>
 			<arg line="-p '${dbport}'"/>
 			<arg line="-U '${dbuser}'"/>
 			<arg line="--set ON_ERROR_STOP=1"/>
+			<!-- Connect to an existing maintenance DB so we can (re)create the target DB. -->
+			<arg line="-d template1"/>
 			<arg line="-c 'create database ${dbname} ENCODING = UTF8 TEMPLATE = template0'"/>
 		</exec>
 		<exec executable="psql" input="database/postgresql/schema.sql" failonerror="on">
@@ -288,6 +321,19 @@
 
 	<target name="drop-db-postgresql">
 		<!-- Drop PostgreSQL database -->
+		<!-- Terminate existing connections and wait so DROP DATABASE is reliable. -->
+		<exec executable="psql" failonerror="on">
+			<env key="PGPASSWORD" value="${dbpassword}"/>
+			<arg line="-q"/>
+			<arg line="-h '${dbhost}'"/>
+			<arg line="-p '${dbport}'"/>
+			<arg line="-U '${dbuser}'"/>
+				<arg line="--set ON_ERROR_STOP=1"/>
+				<arg line="-d template1"/>
+				<arg value="-c"/>
+				<arg value="DO $zbx$ BEGIN PERFORM pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='${dbname}' AND pid != pg_backend_pid(); WHILE EXISTS (SELECT 1 FROM pg_stat_activity WHERE datname='${dbname}' AND pid != pg_backend_pid()) LOOP PERFORM pg_sleep(0.2); END LOOP; END; $zbx$;"/>
+			</exec>
+
 		<exec executable="psql" failonerror="on">
 			<env key="PGPASSWORD" value="${dbpassword}"/>
 			<arg line="-q"/>
@@ -295,7 +341,10 @@
 			<arg line="-p '${dbport}'"/>
 			<arg line="-U '${dbuser}'"/>
 			<arg line="--set ON_ERROR_STOP=1"/>
-			<arg line="-c 'drop database if exists ${dbname}'"/>
+			<!-- Connect to an existing maintenance DB so DROP can run even when ${dbname} doesn't exist yet. -->
+			<arg line="-d template1"/>
+			<arg value="-c"/>
+			<arg value="drop database if exists ${dbname}"/>
 		</exec>
 	</target>
 
@@ -382,7 +431,12 @@
 		</exec>
 	</target>
 
-	<target name="init-frontend-postgresql" depends="create-configs,create-saml-configs,create-ldap-configs,make-dbschema,make-gettext,create-db-postgresql,apply-custom-patches,init-frontend-modules">
+	<!--
+		Selenium frontend smoke tests for individual widgets do not require SAML/LDAP test fixtures.
+		Make those dependencies optional to allow focused frontend init runs without providing
+		SAML/LDAP bootstrap environment variables.
+	-->
+	<target name="init-frontend-postgresql" depends="create-configs,make-dbschema,make-gettext,create-db-postgresql,apply-custom-patches,init-frontend-modules">
 		<exec executable="psql" input="ui/tests/selenium/data/data_test.sql" failonerror="on">
 			<env key="PGPASSWORD" value="${dbpassword}"/>
 			<arg line="-q"/>
@@ -547,7 +601,8 @@
 		</exec>
 	</target>
 
-	<target name="init-frontend-mysql" depends="create-configs,create-saml-configs,create-ldap-configs,make-dbschema,make-gettext,create-db-mysql,apply-custom-patches,init-frontend-modules">
+	<!-- See init-frontend-postgresql for why SAML/LDAP are omitted here. -->
+	<target name="init-frontend-mysql" depends="create-configs,make-dbschema,make-gettext,create-db-mysql,apply-custom-patches,init-frontend-modules">
 		<exec executable="mysql" input="ui/tests/selenium/data/data_test.sql" failonerror="on">
 			<env key="MYSQL_PWD" value="${dbpassword}"/>
 			<arg line="--host=${dbhost}"/>
@@ -580,7 +635,7 @@
 	<target name="init-dast-mysql" depends="create-frontend-configs,make-dbschema,create-db-mysql"/>
 
 	<target name="test-phpunit" depends="init-common">
-		<exec executable="phpunit" dir="ui/tests/unit" failonerror="off">
+		<exec executable="${basedir}/tools/phpunit-runner" dir="ui/tests/unit" failonerror="off">
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--do-not-cache-result"/>
 			<arg line="${phpunit_filter}"/>
@@ -589,7 +644,7 @@
 	</target>
 
 	<target name="test-frontend">
-		<exec executable="phpunit" dir="ui/tests" failonerror="off">
+		<exec executable="${basedir}/tools/phpunit-runner" dir="ui/tests" failonerror="off">
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--bootstrap=bootstrap.php"/>
 			<arg line="--do-not-cache-result"/>
@@ -600,7 +655,7 @@
 	</target>
 
 	<target name="test-api">
-		<exec executable="phpunit" dir="ui/tests" failonerror="off">
+		<exec executable="${basedir}/tools/phpunit-runner" dir="ui/tests" failonerror="off">
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--bootstrap=bootstrap.php"/>
 			<arg line="--do-not-cache-result"/>
@@ -610,7 +665,7 @@
 	</target>
 
 	<target name="test-integration">
-		<exec executable="phpunit" dir="ui/tests" failonerror="off">
+		<exec executable="${basedir}/tools/phpunit-runner" dir="ui/tests" failonerror="off">
 			<env key="UBSAN_OPTIONS" value="print_stacktrace=1:suppressions=../tests/ubsan.supp"/>
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--bootstrap=bootstrap.php"/>

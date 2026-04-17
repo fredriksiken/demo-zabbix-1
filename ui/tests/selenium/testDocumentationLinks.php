@@ -2615,6 +2615,25 @@ class testDocumentationLinks extends CWebTest {
 					'doc_link' => '/en/manual/web_interface/frontend_sections/dashboards/widgets/item_card'
 				]
 			]
+			,
+			// #250 Start creating Traffic light widget.
+			[
+				[
+					'url' => 'zabbix.php?action=dashboard.view&dashboardid=1',
+					'actions' => [
+						[
+							'callback' => 'openFormWithLink',
+							'element' => 'button:Edit dashboard'
+						],
+						[
+							'callback' => 'openFormWithLink',
+							'element' => 'id:dashboard-add-widget'
+						]
+					],
+					'widget_type' => 'Traffic light',
+					'doc_link' => '/en/manual/web_interface/frontend_sections/dashboards/widgets/trafficlight'
+				]
+			]
 		];
 	}
 

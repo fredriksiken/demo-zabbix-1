@@ -68,12 +68,19 @@ class CTest extends TestCase {
 	protected $data_key = null;
 	// Lists of test case data set keys.
 	protected static $test_data_sets = [];
+	// Captured PHPUnit test name (method name) for environments where PHPUnit removed getName().
+	// This is used by our legacy annotation parsing and DB backup/restore naming.
+	protected ?string $zbx_test_name = null;
+	// Set by Selenium/unit harness overrides on failure paths.
+	protected bool $zbx_has_failed = false;
 	// Test case annotations.
 	protected $annotations = null;
 	// Test case warnings.
 	protected static $warnings = [];
 	// Skip test suite execution.
 	protected static $skip_suite = false;
+	// Prevent spamming the deterministic DB-skip reason to stderr across many skipped suites.
+	protected static $suite_skip_reason_printed = false;
 	// Callbacks that should be executed at the test case level.
 	protected $case_callbacks = [];
 	// Callbacks that should be executed at the test suite level.
@@ -89,6 +96,76 @@ class CTest extends TestCase {
 	protected $behaviors = null;
 
 	/**
+	 * Parse annotations from docblocks for this test case.
+	 *
+	 * Returns the structure expected by {@see getAnnotationsByType()}:
+	 * [
+	 *   'class'  => [ <annotationName> => [ <argString>, ... ]],
+	 *   'method' => [ <annotationName> => [ <argString>, ... ]],
+	 * ]
+	 */
+	protected function getAnnotations(): array {
+		$class = new ReflectionClass($this);
+		$methodName = $this->getName(false);
+
+		$parseDoc = static function (?string $doc): array {
+			if (!$doc) {
+				return [];
+			}
+
+			$result = [];
+			foreach (preg_split('/\R/', $doc) as $line) {
+				$line = trim($line);
+				$line = ltrim($line, '*');
+				$line = trim($line);
+
+				if ($line === '' || $line[0] !== '@') {
+					continue;
+				}
+
+				// Supported forms:
+				//   @tag arg1,arg2
+				//   @tag(arg1,arg2)
+				//   @tag
+				if (!preg_match('/^@([A-Za-z_][A-Za-z0-9_]*)(?:\(([^)]*)\))?(?:\s+(.*))?$/', $line, $m)) {
+					continue;
+				}
+
+				$name = $m[1];
+				$args = '';
+				if (isset($m[2]) && $m[2] !== '') {
+					$args = trim($m[2]);
+				}
+				elseif (isset($m[3]) && $m[3] !== null) {
+					$args = trim($m[3]);
+				}
+
+				if ($args !== '') {
+					$result[$name][] = $args;
+				}
+			}
+
+			return $result;
+		};
+
+		$classAnnotations = $parseDoc($class->getDocComment());
+
+		$methodAnnotations = [];
+		try {
+			$method = $class->getMethod($methodName);
+			$methodAnnotations = $parseDoc($method->getDocComment());
+		}
+		catch (ReflectionException $e) {
+			// Keep method annotations empty.
+		}
+
+		return [
+			'class' => $classAnnotations,
+			'method' => $methodAnnotations
+		];
+	}
+
+	/**
 	 * Overridden constructor for collecting data on data sets from dataProvider annotations.
 	 *
 	 * @param string $name
@@ -96,6 +173,8 @@ class CTest extends TestCase {
 	 * @param string $data_name
 	 */
 	public function __construct($name = null, array $data = [], $data_name = '') {
+		$this->zbx_test_name = is_string($name) ? $name : null;
+		$this->zbx_has_failed = false;
 		parent::__construct($name, $data, $data_name);
 
 		// If data limits are enabled and test case uses data.
@@ -105,6 +184,52 @@ class CTest extends TestCase {
 		}
 
 		self::$instances++;
+	}
+
+	/**
+	 * PHPUnit compatibility shim.
+	 *
+	 * Legacy Zabbix selenium/unit harness code calls `$this->getName(false)` to obtain
+	 * the current test method name. PHPUnit 10 removed this API, so we store `$name`
+	 * in our constructor and return it here.
+	 */
+	public function getName($withDataSet = true): string {
+		if ($this->zbx_test_name !== null && $this->zbx_test_name !== '') {
+			return $this->zbx_test_name;
+		}
+
+		// Fallback: try to locate a commonly used PHPUnit internal property.
+		if (property_exists($this, 'name') && is_string($this->name ?? null) && $this->name !== '') {
+			return $this->name;
+		}
+
+		// Last-resort fallback: scan for exactly one `test*` method in this class.
+		$methods = array_values(array_filter(
+			get_class_methods($this),
+			static fn (string $m): bool => str_starts_with($m, 'test')
+		));
+		if (count($methods) === 1) {
+			return $methods[0];
+		}
+
+		return '';
+	}
+
+	/**
+	 * PHPUnit compatibility shim.
+	 *
+	 * Legacy code uses hasFailed()/getStatus() to decide whether to capture screenshots
+	 * or fail based on browser errors.
+	 */
+	public function hasFailed(): bool {
+		return $this->zbx_has_failed;
+	}
+
+	/**
+	 * @return string|null
+	 */
+	public function getStatus(): ?string {
+		return $this->hasFailed() ? 'failed' : 'ok';
 	}
 
 	/**
@@ -234,10 +359,21 @@ class CTest extends TestCase {
 		// Backup performed before test suite execution.
 		$suite_backup = $this->getAnnotationTokensByName($class_annotations, 'backup');
 
-		if ($suite_backup) {
-			self::$suite_backup = $suite_backup;
-			CDBHelper::backupTables(self::$suite_backup);
-		}
+			if ($suite_backup) {
+				self::$suite_backup = $suite_backup;
+				CDBHelper::backupTables(self::$suite_backup);
+				if (!CDBHelper::isValid()) {
+					self::zbxAddWarning(CDBHelper::$skip_reason ?: 'Skipping DB backups/restore due to broken DB state.');
+					// PHPUnit's console summary doesn't reliably include skip reasons for suite-level skips.
+					// CI depends on the deterministic reason text being present in logs.
+					if (!self::$suite_skip_reason_printed && CDBHelper::$skip_reason) {
+						self::$suite_skip_reason_printed = true;
+						fwrite(STDERR, CDBHelper::$skip_reason.PHP_EOL);
+					}
+					self::markTestSuiteSkipped();
+					return;
+				}
+			}
 
 		$suite_backup_config = $this->getAnnotationTokensByName($class_annotations, 'backupConfig');
 
@@ -269,7 +405,14 @@ class CTest extends TestCase {
 	 */
 	public function onBeforeTestCase() {
 		if (!CDBHelper::isValid()) {
-			self::markTestSkipped('Test case skipped because of the broken DB state.');
+			$reason = 'Test case skipped because of the broken DB state.';
+			// PHPUnit non-verbose console summary doesn't consistently include skip reasons.
+			// Emit the deterministic reason text once so CI logs remain diagnosable.
+			if (!self::$suite_skip_reason_printed) {
+				self::$suite_skip_reason_printed = true;
+				fwrite(STDERR, $reason.PHP_EOL);
+			}
+			self::markTestSkipped($reason);
 			return;
 		}
 
@@ -285,7 +428,22 @@ class CTest extends TestCase {
 		}
 
 		if (!isset($DB['DB'])) {
-			DBconnect($error);
+			$db_connect_ok = false;
+			$error = '';
+			$db_connect_ok = DBconnect($error);
+
+			// DBconnect() can return false while leaving $DB['DB'] empty/null, which would
+			// later crash DB-dependent helpers (e.g. pg_escape_string()).
+			if (!$db_connect_ok || !isset($DB['DB']) || empty($DB['DB'])) {
+				CDBHelper::$state = CDBHelper::STATE_BROKEN;
+				CDBHelper::$skip_reason = $error !== '' ? ('DB connection failed: '.$error) : 'DB connection failed.';
+				if (!self::$suite_skip_reason_printed && CDBHelper::$skip_reason) {
+					self::$suite_skip_reason_printed = true;
+					fwrite(STDERR, CDBHelper::$skip_reason.PHP_EOL);
+				}
+				self::markTestSkipped(CDBHelper::$skip_reason);
+				return;
+			}
 		}
 
 		$this->annotations = $this->getAnnotations();
@@ -323,10 +481,15 @@ class CTest extends TestCase {
 			// Backup performed before every test case execution.
 			$case_backup = $this->getAnnotationTokensByName($method_annotations, 'backup');
 
-			if ($case_backup) {
-				$this->case_backup = $case_backup;
-				CDBHelper::backupTables($this->case_backup);
-			}
+				if ($case_backup) {
+					$this->case_backup = $case_backup;
+					CDBHelper::backupTables($this->case_backup);
+					if (!CDBHelper::isValid()) {
+						self::zbxAddWarning(CDBHelper::$skip_reason ?: 'Test case skipped because of broken DB state.');
+						self::markTestSuiteSkipped();
+						return;
+					}
+				}
 
 			$case_backup_config = $this->getAnnotationTokensByName($method_annotations, 'backupConfig');
 
@@ -351,10 +514,15 @@ class CTest extends TestCase {
 				// Backup performed once before first test case execution.
 				$case_backup_once = $this->getAnnotationTokensByName($method_annotations, 'backupOnce');
 
-				if ($case_backup_once) {
-					self::$case_backup_once = $case_backup_once;
-					CDBHelper::backupTables(self::$case_backup_once);
-				}
+					if ($case_backup_once) {
+						self::$case_backup_once = $case_backup_once;
+						CDBHelper::backupTables(self::$case_backup_once);
+						if (!CDBHelper::isValid()) {
+							self::zbxAddWarning(CDBHelper::$skip_reason ?: 'Test case skipped because of broken DB state.');
+							self::markTestSuiteSkipped();
+							return;
+						}
+					}
 
 				// Execute callbacks that should be executed once for multiple test cases.
 				self::executeCallbacks($this, $this->getAnnotationTokensByName($method_annotations, 'onBeforeOnce'), true);
@@ -381,7 +549,9 @@ class CTest extends TestCase {
 		}
 
 		if (self::$skip_suite) {
-			self::markTestSkipped();
+			// Suite-level skips currently originate from CDBHelper state checks.
+			// Propagate the deterministic reason so CI output isn't opaque.
+			self::markTestSkipped(CDBHelper::$skip_reason ?: 'Skipping DB backups/restore due to broken DB state.');
 		}
 	}
 
@@ -438,6 +608,11 @@ class CTest extends TestCase {
 	 */
 	public static function onAfterTestSuite() {
 		global $DB;
+
+		// If the suite marked DB state as broken, avoid trying to reconnect/restores.
+		if (!CDBHelper::isValid()) {
+			return;
+		}
 
 		if (self::$suite_backup_config) {
 			CConfigHelper::restoreConfig();

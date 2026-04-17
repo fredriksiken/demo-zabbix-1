@@ -120,12 +120,16 @@ class CAPITest extends CTest {
 	/**
 	 * @inheritdoc
 	 */
-	protected function onNotSuccessfulTest($t): void {
+	protected function onNotSuccessfulTest(\Throwable $t): never {
+		$this->zbx_has_failed = true;
 		if ($t instanceof Exception && CAPIHelper::getDebugInfo()) {
 			CExceptionHelper::setMessage($t, $t->getMessage()."\n\nAPI calls:\n".CAPIHelper::getDebugInfoAsString());
 		}
 
 		parent::onNotSuccessfulTest($t);
+
+		// PHPUnit's base implementation terminates the test.
+		throw $t;
 	}
 
 	/**

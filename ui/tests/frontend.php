@@ -28,3 +28,11 @@ class All {
 		return $suite;
 	}
 }
+
+// PHPUnit 10 resolves the test suite entrypoint class name from the filename.
+// The file is `frontend.php`, so PHPUnit expects `class frontend`.
+class frontend extends \PHPUnit\Framework\TestCase {
+	public static function suite() {
+		return All::suite();
+	}
+}
