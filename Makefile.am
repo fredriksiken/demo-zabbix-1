@@ -2,7 +2,9 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-SASS_BIN = $(shell command -v sass >/dev/null 2>&1 && echo sass || echo "npx --yes sass")
+# Use Dart Sass via npx deterministically in CI/dev, regardless of whether a `sass` binary
+# is available system-wide (which could produce subtly different output).
+SASS_BIN = npx -y sass
 
 SUBDIRS = \
 	include \

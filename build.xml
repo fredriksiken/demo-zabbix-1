@@ -277,7 +277,7 @@
 				<!--
 					Preserve the local agent config template so subsequent targets in the same
 					workspace won't fail.
-					
+
 					make-binary-agent-3.0 installs into the repo prefix (${basedir}), and the
 					install hook copies from conf/zabbix_agentd.conf (or etc/...). If we move/rename
 					that file away, later invocations in the same job can no longer find it.

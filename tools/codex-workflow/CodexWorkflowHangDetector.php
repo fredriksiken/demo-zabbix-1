@@ -36,14 +36,21 @@ final class CodexWorkflowHangDetector {
 		]);
 
 		// Context marker.
-		$hasQemuContext = self::containsAny($needle, [
+		// Keep this intentionally broader than just "qemu" because CI stale-run guard scenarios
+		// may surface a timeout marker without the exact original QEMU phrasing, while still
+		// indicating a Codex workflow/worker failure.
+		$hasWorkflowContext = self::containsAny($needle, [
 			'qemu',
-			'codex cli failed in qemu',
+			'codex',
+			'codex cli failed',
+			'workflow',
+			'worker',
+			'stale',
 			'hung workflow',
 		]);
 
 		// If we only see generic "timeout" without context, prefer false positives avoidance.
-		return $hasTimeout && $hasQemuContext;
+		return $hasTimeout && $hasWorkflowContext;
 	}
 
 	/**
@@ -81,4 +88,3 @@ final class CodexWorkflowHangDetector {
 		return false;
 	}
 }
-

@@ -20,15 +20,35 @@ final class CodexWorkflowCleanup {
 			}
 
 			// Safety: never delete outside run root.
-			$abs = self::normalizePath($path);
-			$rootAbs = self::normalizePath($runRootDir);
-			$within = $abs === $rootAbs || str_starts_with($abs, $rootAbs . '/');
+			//
+			// CI may pass `--run-root` as a symlink path, while child targets resolve to real
+			// paths. If we only compare normalized string paths, we can mistakenly skip deletion
+			// and leave stale workflow state behind. Use `realpath()` when possible but fall
+			// back to normalization to keep behavior deterministic when paths don't exist.
+			$absNorm = self::normalizePath($path);
+			$rootAbsNorm = self::normalizePath($runRootDir);
+			$rootAbs = realpath($runRootDir);
+			$absResolved = realpath($absNorm);
+
+			// Containment must be evaluated against:
+			// - the non-resolved (symlink-preserving) path, so we can delete symlinks that live
+			//   under `runRoot` even if the symlink target resolves outside.
+			// - the resolved path, when both resolve cleanly.
+			$withinNorm = $absNorm === $rootAbsNorm || str_starts_with($absNorm, $rootAbsNorm . '/');
+			$withinResolved = false;
+			if ($rootAbs !== false && $absResolved !== false) {
+				$withinResolved = $absResolved === $rootAbs || str_starts_with($absResolved, $rootAbs . '/');
+			}
+			$within = $withinNorm || $withinResolved;
 			if (!$within) {
 				$reports[] = ['target' => $t, 'ok' => false, 'skipped' => true, 'reason' => 'outside_run_root'];
 				continue;
 			}
 
-			$exists = file_exists($abs) || is_link($abs);
+			// Use the non-resolved path for existence checks and deletion so that
+			// symlinks are unlinked at the run-root path rather than deleting their
+			// resolved targets elsewhere.
+			$exists = file_exists($absNorm) || is_link($absNorm);
 			if (!$exists) {
 				$reports[] = ['target' => $t, 'ok' => true, 'skipped' => true, 'reason' => 'missing'];
 				continue;
@@ -39,7 +59,7 @@ final class CodexWorkflowCleanup {
 				continue;
 			}
 
-			$ok = self::deleteRecursively($abs);
+			$ok = self::deleteRecursively($absNorm);
 			$reports[] = ['target' => $t, 'ok' => $ok, 'skipped' => false, 'reason' => $ok ? 'deleted' : 'delete_failed'];
 		}
 
@@ -85,6 +105,7 @@ final class CodexWorkflowCleanup {
 			return @unlink($path);
 		}
 		if (is_dir($path)) {
+			$hadFailures = false;
 			$items = @scandir($path);
 			if ($items === false) {
 				return false;
@@ -95,15 +116,23 @@ final class CodexWorkflowCleanup {
 				}
 				if (!self::deleteRecursively($path . '/' . $it)) {
 					// Continue attempting but remember failure.
-					$failed = true;
+					$hadFailures = true;
 				}
 			}
-			$failed = $failed ?? false;
-			@rmdir($path);
-			return !$failed;
+
+			$rmdirOk = @rmdir($path);
+			// If children were successfully deleted but rmdir failed due to permissions or
+			// race conditions, treat that as a failure so callers can react deterministically.
+			if ($hadFailures) {
+				return false;
+			}
+			if ($rmdirOk) {
+				return true;
+			}
+			// If the directory already disappeared between scandir and rmdir, consider it OK.
+			return !is_dir($path) && !file_exists($path);
 		}
 
 		return true;
 	}
 }
-

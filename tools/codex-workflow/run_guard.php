@@ -81,7 +81,17 @@ if ($hang) {
 	// If we detected a hang, the next resume should continue from the recorded step_boundary,
 	// not from "step 0". We treat "next_step_index" as already computed by the runner.
 	// Here we only ensure it's not reset to 0 on failure.
-	if (!isset($state['next_step_index']) || !is_int($state['next_step_index'])) {
+	if (!array_key_exists('next_step_index', $state) || $state['next_step_index'] === null) {
+		$state['next_step_index'] = 1;
+	}
+	else if (is_int($state['next_step_index'])) {
+		// Preserve.
+	}
+	else if (is_string($state['next_step_index']) && is_numeric($state['next_step_index'])) {
+		// Some upstreams persist numeric indexes as strings.
+		$state['next_step_index'] = (int) $state['next_step_index'];
+	}
+	else {
 		$state['next_step_index'] = 1;
 	}
 }
