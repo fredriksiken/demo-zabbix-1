@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PHAR_DIR="${PHAR_DIR:-.tools/phpunit}"
+PHAR_PATH="${PHAR_DIR}/phpunit.phar"
+PHPUNIT_VERSION="${PHPUNIT_VERSION:-9.5.28}"
+PHAR_URL="https://phar.phpunit.de/phpunit-${PHPUNIT_VERSION}.phar"
+
+mkdir -p "${PHAR_DIR}"
+
+if [[ ! -s "${PHAR_PATH}" ]]; then
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "${PHAR_URL}" -o "${PHAR_PATH}"
+  elif command -v wget >/dev/null 2>&1; then
+    wget -qO "${PHAR_PATH}" "${PHAR_URL}"
+  else
+    echo "Neither 'curl' nor 'wget' is available to download PHPUnit phar." >&2
+    exit 1
+  fi
+fi
+
+exec php "${PHAR_PATH}" "$@"
+

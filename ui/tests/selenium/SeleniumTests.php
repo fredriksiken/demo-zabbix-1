@@ -17,6 +17,7 @@
 // Some CI environments (and our current workspace) don't ship `facebook/webdriver` (or compatible)
 // which would otherwise cause fatals during `require_once` of WebDriver element base classes.
 if (!class_exists('Facebook\\WebDriver\\Remote\\RemoteWebElement') ||
+	!class_exists('Facebook\\WebDriver\\Remote\\RemoteWebDriver') ||
 	!class_exists('Facebook\\WebDriver\\WebDriverBy')) {
 	class SeleniumTests {
 		public static function suite() {

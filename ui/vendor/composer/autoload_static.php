@@ -33,8 +33,8 @@ class ComposerStaticInit3e832710df7ec8c92736d5724fad7cab
         ),
         'F' => 
         array (
-            'Facebook\\WebDriver\\' => 19,
             'Firebase\\JWT\\' => 13,
+            'Facebook\\WebDriver\\' => 19,
         ),
         'D' => 
         array (
@@ -71,13 +71,13 @@ class ComposerStaticInit3e832710df7ec8c92736d5724fad7cab
         array (
             0 => __DIR__ . '/..' . '/onelogin/php-saml/src',
         ),
-        'Facebook\\WebDriver\\' => 
-        array (
-            0 => __DIR__ . '/..' . '/facebook/webdriver/lib',
-        ),
         'Firebase\\JWT\\' => 
         array (
             0 => __DIR__ . '/..' . '/firebase/php-jwt/src',
+        ),
+        'Facebook\\WebDriver\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/facebook/webdriver/lib',
         ),
         'Duo\\DuoUniversal\\' => 
         array (

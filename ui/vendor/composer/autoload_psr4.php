@@ -9,11 +9,11 @@ return array(
     'Symfony\\Polyfill\\Ctype\\' => array($vendorDir . '/symfony/polyfill-ctype'),
     'Symfony\\Component\\Yaml\\' => array($vendorDir . '/symfony/yaml'),
     'SCIM\\' => array($baseDir . '/include/classes/scim'),
-    'Facebook\\WebDriver\\' => array($vendorDir . '/facebook/webdriver/lib'),
     'RobRichards\\XMLSecLibs\\' => array($vendorDir . '/robrichards/xmlseclibs/src'),
     'PragmaRX\\Google2FA\\' => array($vendorDir . '/pragmarx/google2fa/src'),
     'ParagonIE\\ConstantTime\\' => array($vendorDir . '/paragonie/constant_time_encoding/src'),
     'OneLogin\\' => array($vendorDir . '/onelogin/php-saml/src'),
     'Firebase\\JWT\\' => array($vendorDir . '/firebase/php-jwt/src'),
+    'Facebook\\WebDriver\\' => array($vendorDir . '/facebook/webdriver/lib'),
     'Duo\\DuoUniversal\\' => array($vendorDir . '/duosecurity/duo_universal_php/src'),
 );

@@ -2,6 +2,8 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
+SASS_BIN = $(shell command -v sass >/dev/null 2>&1 && echo sass || echo "npx --yes sass")
+
 SUBDIRS = \
 	include \
 	src \
@@ -93,22 +95,22 @@ gettext:
 	ui/locale/make_mo.sh
 
 css_theme_blue:
-	sass --no-cache --sourcemap=none sass/stylesheets/sass/blue-theme.scss ui/assets/styles/blue-theme.css
+	$(SASS_BIN) --no-source-map sass/stylesheets/sass/blue-theme.scss ui/assets/styles/blue-theme.css
 
 css_theme_blue_classic:
-	sass --no-cache --sourcemap=none sass/stylesheets/sass/blue-classic-theme.scss ui/assets/styles/blue-classic-theme.css
+	$(SASS_BIN) --no-source-map sass/stylesheets/sass/blue-classic-theme.scss ui/assets/styles/blue-classic-theme.css
 
 css_theme_dark:
-	sass --no-cache --sourcemap=none sass/stylesheets/sass/dark-theme.scss ui/assets/styles/dark-theme.css
+	$(SASS_BIN) --no-source-map sass/stylesheets/sass/dark-theme.scss ui/assets/styles/dark-theme.css
 
 css_theme_dark_classic:
-	sass --no-cache --sourcemap=none sass/stylesheets/sass/dark-classic-theme.scss ui/assets/styles/dark-classic-theme.css
+	$(SASS_BIN) --no-source-map sass/stylesheets/sass/dark-classic-theme.scss ui/assets/styles/dark-classic-theme.css
 
 css_hc_light:
-	sass --no-cache --sourcemap=none sass/stylesheets/sass/hc-light.scss ui/assets/styles/hc-light.css
+	$(SASS_BIN) --no-source-map sass/stylesheets/sass/hc-light.scss ui/assets/styles/hc-light.css
 
 css_hc_dark:
-	sass --no-cache --sourcemap=none sass/stylesheets/sass/hc-dark.scss ui/assets/styles/hc-dark.css
+	$(SASS_BIN) --no-source-map sass/stylesheets/sass/hc-dark.scss ui/assets/styles/hc-dark.css
 
 css_images:
 	cp sass/img/browser-sprite.png ui/assets/img/
