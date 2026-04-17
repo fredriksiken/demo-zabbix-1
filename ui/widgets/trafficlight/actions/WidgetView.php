@@ -21,17 +21,14 @@ use API,
 	CControllerDashboardWidgetView,
 	CControllerResponseData,
 	CParser,
-	CNumberParser,
 	CSettingsHelper,
 	Manager;
 
 use Widgets\TrafficLight\Includes\WidgetForm;
+use Widgets\TrafficLight\Includes\TrafficLightLogic;
 use Widgets\TrafficLight\Widget;
 
 class WidgetView extends CControllerDashboardWidgetView {
-
-	private const COVER_MESSAGE_NO_DATA = 'No data found';
-	private const COVER_MESSAGE_INVALID_CONFIG = 'Please update configuration';
 
 	protected function init(): void {
 		parent::init();
@@ -49,17 +46,36 @@ class WidgetView extends CControllerDashboardWidgetView {
 			]
 		];
 
+		// Pre-validation inputs used for deterministic cover precedence.
+		$has_selection = !empty($this->fields_values['items'] ?? []);
+
 		$items = $this->getMatchedItems();
 		$thresholds = $this->getThresholdsOrNull();
 
-		if (!$items || $thresholds === null) {
+		$unsupported_items_present = false;
+		if ($items) {
+			foreach ($items as $item) {
+				if (!TrafficLightLogic::isSupportedValueType((int) $item['value_type'])) {
+					$unsupported_items_present = true;
+					break;
+				}
+			}
+		}
+
+		if ($thresholds === null || !$has_selection || !$items || $unsupported_items_present) {
 			$data['state'] = 'no-data';
 			$data['state_label'] = _('No data');
-			$data['cover_message'] = !$items ? self::COVER_MESSAGE_NO_DATA : self::COVER_MESSAGE_INVALID_CONFIG;
+			$data['cover_message'] = TrafficLightLogic::decideCoverMessage(
+				$has_selection,
+				$thresholds,
+				$unsupported_items_present
+			);
+
+			$matched_items = count($items);
 			$data['summary'] = [
-				'matched_items' => 0,
+				'matched_items' => $matched_items,
 				'items_with_data' => 0,
-				'items_without_data' => 0,
+				'items_without_data' => $matched_items,
 				'green_items' => 0,
 				'yellow_items' => 0,
 				'red_items' => 0
@@ -74,7 +90,6 @@ class WidgetView extends CControllerDashboardWidgetView {
 
 		$history_period = timeUnitToSeconds(CSettingsHelper::get(CSettingsHelper::HISTORY_PERIOD));
 
-		$matched_items = count($items);
 		$items_with_data = 0;
 		$state_counts = [
 			'green' => 0,
@@ -82,25 +97,8 @@ class WidgetView extends CControllerDashboardWidgetView {
 			'red' => 0
 		];
 
-		if ($matched_items === 0) {
-			$data['state'] = 'no-data';
-			$data['state_label'] = _('No data');
-			$data['cover_message'] = self::COVER_MESSAGE_NO_DATA;
-			$data['summary'] = [
-				'matched_items' => 0,
-				'items_with_data' => 0,
-				'items_without_data' => 0,
-				'green_items' => 0,
-				'yellow_items' => 0,
-				'red_items' => 0
-			];
-
-			$this->setResponse(new CControllerResponseData($data));
-
-			return;
-		}
-
 		$length = ZBX_HINTBOX_CONTENT_LIMIT + 1;
+		$matched_items = count($items);
 		$db_history = Manager::History()->getLastValues($items, 1, $history_period, $length);
 
 		foreach ($items as $item) {
@@ -111,21 +109,15 @@ class WidgetView extends CControllerDashboardWidgetView {
 			$items_with_data++;
 			$value = (float) $db_history[$item['itemid']][0]['value'];
 
-			if ($value >= $red_threshold) {
-				$state_counts['red']++;
-			}
-			elseif ($value >= $yellow_threshold) {
-				$state_counts['yellow']++;
-			}
-			else {
-				$state_counts['green']++;
-			}
+			$state = TrafficLightLogic::classifyValue($value, $yellow_threshold, $red_threshold);
+
+			$state_counts[$state]++;
 		}
 
 		if ($items_with_data === 0) {
 			$data['state'] = 'no-data';
 			$data['state_label'] = _('No data');
-			$data['cover_message'] = self::COVER_MESSAGE_NO_DATA;
+			$data['cover_message'] = TrafficLightLogic::COVER_MESSAGE_NO_DATA;
 			$data['summary'] = [
 				'matched_items' => $matched_items,
 				'items_with_data' => 0,
@@ -141,8 +133,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 		}
 
 		// MVP semantics: worst-state-wins (any red => red, else any yellow => yellow, else green).
-		$state = $state_counts['red'] > 0 ? 'red'
-			: ($state_counts['yellow'] > 0 ? 'yellow' : 'green');
+		$state = TrafficLightLogic::reduceWorstState($state_counts['green'], $state_counts['yellow'], $state_counts['red']);
 
 		$data['state'] = $state;
 		$data['state_label'] = _s('Traffic light %1$s', $state);
@@ -174,8 +165,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 			'output' => ['itemid', 'hostid', 'value_type', 'units', 'name_resolved', 'key_'],
 			'webitems' => true,
 			'filter' => [
-				'status' => ITEM_STATUS_ACTIVE,
-				'value_type' => [ITEM_VALUE_TYPE_FLOAT, ITEM_VALUE_TYPE_UINT64]
+				'status' => ITEM_STATUS_ACTIVE
 			],
 			'selectHosts' => ['name'],
 			'searchWildcardsEnabled' => true,
@@ -198,37 +188,6 @@ class WidgetView extends CControllerDashboardWidgetView {
 	 * @return array{float, float}|null array(yellow_threshold, red_threshold) or null on invalid config
 	 */
 	private function getThresholdsOrNull(): ?array {
-		$thresholds = $this->fields_values['thresholds'] ?? [];
-
-		if (count($thresholds) !== 2) {
-			return null;
-		}
-
-		$number_parser = new CNumberParser([
-			'with_size_suffix' => true,
-			'with_time_suffix' => true,
-			'is_binary_size' => false
-		]);
-
-		$yellow_raw = $thresholds[0]['threshold'] ?? null;
-		$red_raw = $thresholds[1]['threshold'] ?? null;
-
-		$yellow_parsed = $yellow_raw !== null && $number_parser->parse($yellow_raw) === CParser::PARSE_SUCCESS
-			? (float) $number_parser->calcValue()
-			: null;
-		$red_parsed = $red_raw !== null && $number_parser->parse($red_raw) === CParser::PARSE_SUCCESS
-			? (float) $number_parser->calcValue()
-			: null;
-
-		if ($yellow_parsed === null || $red_parsed === null) {
-			return null;
-		}
-
-		// MVP contract: red_threshold >= yellow_threshold (inclusive), with direction fixed to higher_is_worse.
-		if ($red_parsed < $yellow_parsed) {
-			return null;
-		}
-
-		return [$yellow_parsed, $red_parsed];
+		return TrafficLightLogic::parseThresholds($this->fields_values['thresholds'] ?? []);
 	}
 }
