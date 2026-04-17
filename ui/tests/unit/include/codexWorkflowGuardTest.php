@@ -20,6 +20,11 @@ final class codexWorkflowGuardTest extends TestCase {
 		$this->assertFalse(CodexWorkflowHangDetector::detectHang($log));
 	}
 
+	public function testDetectHangAcceptsTimeoutWithWorkflowContextWithoutQemu(): void {
+		$log = "Execution stopped because CUSTOM_X failed.\nSoftTimeLimitExceeded()\nCodex workflow stalled on worker stale-run.\n";
+		$this->assertTrue(CodexWorkflowHangDetector::detectHang($log));
+	}
+
 	public function testCleanupIdempotentWhenTargetsMissing(): void {
 		$tmp = sys_get_temp_dir() . '/codex_guard_' . uniqid('', true);
 		$this->assertTrue(@mkdir($tmp, 0775, true));
@@ -65,6 +70,42 @@ final class codexWorkflowGuardTest extends TestCase {
 		}
 
 		// Ensure we can still delete the temp tree after the assertion.
+		$this->forceDeleteDir($tmp);
+	}
+
+	public function testCleanupDeletesSymlinkWithinRunRootEvenIfTargetOutside(): void {
+		$tmp = sys_get_temp_dir() . '/codex_guard_symlink_outside_' . uniqid('', true);
+		$this->assertTrue(@mkdir($tmp, 0775, true));
+
+		$runRoot = $tmp . '/runroot';
+		$outside = $tmp . '/outside';
+		$this->assertTrue(@mkdir($runRoot . '/.launcher', 0775, true));
+		$this->assertTrue(@mkdir($outside, 0775, true));
+
+		// Put a sentinel in the outside directory; cleanup must not follow the symlink
+		// and delete this real directory.
+		$outsideSentinel = $outside . '/sentinel.txt';
+		$this->assertSame(1, file_put_contents($outsideSentinel, 'x'));
+
+		$symlinkTarget = $outside;
+		$symlinkPath = $runRoot . '/.launcher/codex-state';
+		@unlink($symlinkPath);
+		if (!@symlink($symlinkTarget, $symlinkPath)) {
+			$this->markTestSkipped('Symlink creation failed in this environment.');
+		}
+
+		$report = CodexWorkflowCleanup::cleanup(
+			[['path' => $symlinkPath, 'kind' => 'dir']],
+			$runRoot,
+			false
+		);
+		$this->assertTrue($report['ok']);
+
+		// The symlink should be removed from inside runRoot.
+		$this->assertFalse(file_exists($symlinkPath) || is_link($symlinkPath));
+		// The outside directory must remain untouched.
+		$this->assertFileExists($outsideSentinel);
+
 		$this->forceDeleteDir($tmp);
 	}
 
