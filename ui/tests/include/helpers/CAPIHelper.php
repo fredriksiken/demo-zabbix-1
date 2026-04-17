@@ -143,15 +143,30 @@ class CAPIHelper {
 	 * @param string $sessionid    session id to be used.
 	 */
 	public static function createSessionId($userid = 1, $sessionid = '09e7d4286dfdca4ba7be15e0f3b2b55a') {
-		if (!CDBHelper::getRow('select null from sessions where status=0 and userid='.zbx_dbstr($userid).
-				' and sessionid='.zbx_dbstr($sessionid))) {
-			$secret = bin2hex(random_bytes(16));
-			DBexecute('INSERT INTO sessions (sessionid,userid,secret)'.
-				' VALUES ('.zbx_dbstr($sessionid).','.$userid.','.zbx_dbstr($secret).')'
-			);
-		}
+		try {
+			if (!CDBHelper::getRow('select null from sessions where status=0 and userid='.zbx_dbstr($userid).
+					' and sessionid='.zbx_dbstr($sessionid))) {
+				$secret = bin2hex(random_bytes(16));
+				DBexecute('INSERT INTO sessions (sessionid,userid,secret)'.
+					' VALUES ('.zbx_dbstr($sessionid).','.$userid.','.zbx_dbstr($secret).')'
+				);
+			}
 
-		static::$session = $sessionid;
+			static::$session = $sessionid;
+		}
+		catch (Throwable $e) {
+			// Data providers are evaluated before PHPUnit reaches CTest::onBeforeTestCase().
+			// Ensure DB problems fail-closed (mark DB state broken and mark tests skipped,
+			// instead of letting DB escaping TypeErrors bubble up as "invalid data provider").
+			CDBHelper::$state = CDBHelper::STATE_BROKEN;
+			CDBHelper::$skip_reason = 'Skipping DB-backed API helpers: DB connection/query failed.';
+
+			if (class_exists(\PHPUnit\Framework\SkippedTestError::class)) {
+				throw new \PHPUnit\Framework\SkippedTestError(CDBHelper::$skip_reason);
+			}
+
+			throw $e;
+		}
 	}
 
 	/**
