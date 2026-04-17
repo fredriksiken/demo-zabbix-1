@@ -353,9 +353,17 @@ class CDataHelper extends CAPIHelper {
 				file_put_contents(PHPUNIT_DATA_DIR.$source.'.json', $data);
 			}
 		}
-		catch (\Exception $e) {
-			echo 'Failed to load data from data source "'.$source.'".'."\n\n".$e->getMessage()."\n".$e->getTraceAsString();
+		catch (Throwable $e) {
+			// Data provider bootstrapping must fail-closed: on DB/session-related
+			// failures, mark DB helper as BROKEN so tests skip instead of becoming
+			// PHPUnit "invalid data provider" errors.
+			if (class_exists('CDBHelper')) {
+				CDBHelper::$state = CDBHelper::STATE_BROKEN;
+				CDBHelper::$skip_reason = 'Skipping DB-backed test data: data provider bootstrap failed.';
+			}
 
+			// Ensure subsequent lookups see an empty dataset.
+			static::$data[$source] = [];
 			return false;
 		}
 

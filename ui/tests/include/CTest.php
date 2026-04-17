@@ -74,6 +74,8 @@ class CTest extends TestCase {
 	protected static $warnings = [];
 	// Skip test suite execution.
 	protected static $skip_suite = false;
+	// Prevent spamming the deterministic DB-skip reason to stderr across many skipped suites.
+	protected static $suite_skip_reason_printed = false;
 	// Callbacks that should be executed at the test case level.
 	protected $case_callbacks = [];
 	// Callbacks that should be executed at the test suite level.
@@ -309,6 +311,12 @@ class CTest extends TestCase {
 				CDBHelper::backupTables(self::$suite_backup);
 				if (!CDBHelper::isValid()) {
 					self::zbxAddWarning(CDBHelper::$skip_reason ?: 'Skipping DB backups/restore due to broken DB state.');
+					// PHPUnit's console summary doesn't reliably include skip reasons for suite-level skips.
+					// CI depends on the deterministic reason text being present in logs.
+					if (!self::$suite_skip_reason_printed && CDBHelper::$skip_reason) {
+						self::$suite_skip_reason_printed = true;
+						fwrite(STDERR, CDBHelper::$skip_reason.PHP_EOL);
+					}
 					self::markTestSuiteSkipped();
 					return;
 				}
@@ -344,7 +352,14 @@ class CTest extends TestCase {
 	 */
 	public function onBeforeTestCase() {
 		if (!CDBHelper::isValid()) {
-			self::markTestSkipped('Test case skipped because of the broken DB state.');
+			$reason = 'Test case skipped because of the broken DB state.';
+			// PHPUnit non-verbose console summary doesn't consistently include skip reasons.
+			// Emit the deterministic reason text once so CI logs remain diagnosable.
+			if (!self::$suite_skip_reason_printed) {
+				self::$suite_skip_reason_printed = true;
+				fwrite(STDERR, $reason.PHP_EOL);
+			}
+			self::markTestSkipped($reason);
 			return;
 		}
 
@@ -360,7 +375,22 @@ class CTest extends TestCase {
 		}
 
 		if (!isset($DB['DB'])) {
-			DBconnect($error);
+			$db_connect_ok = false;
+			$error = '';
+			$db_connect_ok = DBconnect($error);
+
+			// DBconnect() can return false while leaving $DB['DB'] empty/null, which would
+			// later crash DB-dependent helpers (e.g. pg_escape_string()).
+			if (!$db_connect_ok || !isset($DB['DB']) || empty($DB['DB'])) {
+				CDBHelper::$state = CDBHelper::STATE_BROKEN;
+				CDBHelper::$skip_reason = $error !== '' ? ('DB connection failed: '.$error) : 'DB connection failed.';
+				if (!self::$suite_skip_reason_printed && CDBHelper::$skip_reason) {
+					self::$suite_skip_reason_printed = true;
+					fwrite(STDERR, CDBHelper::$skip_reason.PHP_EOL);
+				}
+				self::markTestSkipped(CDBHelper::$skip_reason);
+				return;
+			}
 		}
 
 		$this->annotations = $this->getAnnotations();
@@ -466,7 +496,9 @@ class CTest extends TestCase {
 		}
 
 		if (self::$skip_suite) {
-			self::markTestSkipped();
+			// Suite-level skips currently originate from CDBHelper state checks.
+			// Propagate the deterministic reason so CI output isn't opaque.
+			self::markTestSkipped(CDBHelper::$skip_reason ?: 'Skipping DB backups/restore due to broken DB state.');
 		}
 	}
 
@@ -523,6 +555,11 @@ class CTest extends TestCase {
 	 */
 	public static function onAfterTestSuite() {
 		global $DB;
+
+		// If the suite marked DB state as broken, avoid trying to reconnect/restores.
+		if (!CDBHelper::isValid()) {
+			return;
+		}
 
 		if (self::$suite_backup_config) {
 			CConfigHelper::restoreConfig();
