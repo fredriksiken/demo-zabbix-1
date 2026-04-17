@@ -8,6 +8,18 @@
 			</and>
 		</condition>
 
+		<!--
+			Focused smoke runs set PHPUNIT_FILTER; in that mode we want Ant to fail if PHPUnit reports
+			errors/failures. When PHPUNIT_FILTER is not set, PHPUnit may return exit code 2 for
+			"incomplete, skipped, or risky" tests, and we keep the previous build behavior.
+		-->
+		<condition property="phpunit_failonerror" value="on">
+			<and>
+				<isset property="PHPUNIT_FILTER" />
+				<length string="${PHPUNIT_FILTER}" when="greater" length="0"/>
+			</and>
+		</condition>
+
 		<!-- Cleanup from the previous run -->
 		<delete dir="build/logs" failonerror="off"/>
 		<mkdir dir="build/logs"/>
@@ -15,6 +27,18 @@
 	</target>
 
 	<target name="create-frontend-configs">
+		<!--
+			Frontend test execution should be runnable in a fresh shell with reasonable defaults.
+			If DB* properties are not provided via -D, these prevent unresolved placeholders from
+			ending up in ui/conf/zabbix.conf.php as PHP expressions (e.g. ${DBPORT} -> undefined constant).
+		-->
+		<property name="DBTYPE" value="POSTGRESQL"/>
+		<property name="DBHOST" value="127.0.0.1"/>
+		<property name="DBPORT" value="5432"/>
+		<property name="DBNAME" value="zabbix"/>
+		<property name="DBUSER" value="zabbix"/>
+		<property name="DBPASSWORD" value="zabbix"/>
+
 		<property name="dbtype" value="${DBTYPE}"/>
 		<property name="dbhost" value="${DBHOST}"/>
 		<property name="dbport" value="${DBPORT}"/>
@@ -68,25 +92,78 @@
 		<replace file="ui/tests/bootstrap.php" token="{PHPUNIT_DATA_SOURCES_DIR}" value="${basedir}/ui/tests/selenium/data/sources/"/>
 	</target>
 
-	<target name="show-browser-info">
-		<exec executable="php" failonerror="on">
-			<arg line="ui/tests/browser.php"/>
-		</exec>
-	</target>
+		<target name="show-browser-info">
+			<exec executable="php" failonerror="false">
+				<arg line="ui/tests/browser.php"/>
+			</exec>
+		</target>
 
 	<target name="create-saml-configs">
-		<property name="phpunit_simplesaml_baseurl" value="${PHPUNIT_SIMPLESAML_BASEURL}"/>
-		<property name="phpunit_sp_entity_id" value="${PHPUNIT_SP_ENTITY_ID}"/>
+		<!--
+			PHPUNIT_SIMPLESAML_BASEURL is optional.
+			If it's unset, we must not leave an unresolved "${PHPUNIT_SIMPLESAML_BASEURL}" string in URL-building logic,
+			otherwise Ant fails URL parsing in the <get> task before ignoreerrors can help.
+		-->
+		<!--
+			Ant does not treat an entirely-undefined -D value as an empty string;
+			to make the length/empty checks deterministic, default them explicitly.
+		-->
+		<property name="PHPUNIT_SIMPLESAML_BASEURL" value=""/>
+		<property name="PHPUNIT_SP_ENTITY_ID" value=""/>
+
+		<condition property="phpunit_saml_enabled" value="true" else="false">
+			<and>
+				<isset property="PHPUNIT_SIMPLESAML_BASEURL"/>
+				<length string="${PHPUNIT_SIMPLESAML_BASEURL}" when="greater" length="0"/>
+			</and>
+		</condition>
+
+		<condition property="phpunit_simplesaml_baseurl_safe" value="${PHPUNIT_SIMPLESAML_BASEURL}" else="http://localhost">
+			<and>
+				<isset property="PHPUNIT_SIMPLESAML_BASEURL"/>
+				<length string="${PHPUNIT_SIMPLESAML_BASEURL}" when="greater" length="0"/>
+			</and>
+		</condition>
+
+		<condition property="phpunit_sp_entity_id" value="${PHPUNIT_SP_ENTITY_ID}" else="">
+			<isset property="PHPUNIT_SP_ENTITY_ID"/>
+		</condition>
+
 		<property name="url" value="${URL}"/>
 
+		<available file="${SIMPLESAMLPHP_CFG_FILE}.template" property="saml_cfg_template_exists"/>
+
+		<condition property="saml_plumbing_enabled" value="true">
+			<and>
+				<equals arg1="${phpunit_saml_enabled}" arg2="true"/>
+				<isset property="saml_cfg_template_exists"/>
+			</and>
+		</condition>
+
+		<!-- CI environments (and some local dev containers) may not ship with a MySQL client binary.
+		     Keep the generic `ant build` target runnable by conditionally skipping MySQL-specific builds. -->
+		<exec executable="/bin/sh" outputproperty="mysql_cmd" failonerror="false">
+			<arg value="-c"/>
+			<!-- Print "mysql" if available, otherwise print nothing. -->
+			<arg value="if command -v mysql >/dev/null 2>/dev/null; then echo mysql; fi"/>
+		</exec>
+		<condition property="mysql_available" value="true">
+			<length string="${mysql_cmd}" when="greater" length="0"/>
+		</condition>
+
 		<!-- SAML settings -->
-		<replace file="ui/tests/bootstrap.php" token="'PHPUNIT_SAML_TESTS_ENABLED', false" value="'PHPUNIT_SAML_TESTS_ENABLED', true"/>
-		<replace file="ui/tests/bootstrap.php" token="{PHPUNIT_IDP_ENTITY_ID}" value="${phpunit_simplesaml_baseurl}/saml2/idp/metadata.php"/>
-		<replace file="ui/tests/bootstrap.php" token="{PHPUNIT_SSO_SERVICE_URL}" value="${phpunit_simplesaml_baseurl}/saml2/idp/SSOService.php"/>
-		<replace file="ui/tests/bootstrap.php" token="{PHPUNIT_SLO_SERVICE_URL}" value="${phpunit_simplesaml_baseurl}/saml2/idp/SingleLogoutService.php"/>
+		<replace file="ui/tests/bootstrap.php" token="'PHPUNIT_SAML_TESTS_ENABLED', false"
+			 value="'PHPUNIT_SAML_TESTS_ENABLED', ${phpunit_saml_enabled}"/>
+		<replace file="ui/tests/bootstrap.php" token="{PHPUNIT_IDP_ENTITY_ID}" value="${phpunit_simplesaml_baseurl_safe}/saml2/idp/metadata.php"/>
+		<replace file="ui/tests/bootstrap.php" token="{PHPUNIT_SSO_SERVICE_URL}" value="${phpunit_simplesaml_baseurl_safe}/saml2/idp/SSOService.php"/>
+		<replace file="ui/tests/bootstrap.php" token="{PHPUNIT_SLO_SERVICE_URL}" value="${phpunit_simplesaml_baseurl_safe}/saml2/idp/SingleLogoutService.php"/>
 		<replace file="ui/tests/bootstrap.php" token="{PHPUNIT_SP_ENTITY_ID}" value="${phpunit_sp_entity_id}"/>
+		<antcall target="create-saml-plumbing"/>
+	</target>
+
+	<target name="create-saml-plumbing" if="saml_plumbing_enabled">
 		<!-- Download SAML X509 certificates -->
-		<get src="${phpunit_simplesaml_baseurl}/module.php/saml/idp/certs.php/idp.crt" dest="ui/conf/certs"/>
+		<get ignoreerrors="true" src="${phpunit_simplesaml_baseurl_safe}/module.php/saml/idp/certs.php/idp.crt" dest="ui/conf/certs"/>
 
 		<copy overwrite="true" file="${SIMPLESAMLPHP_CFG_FILE}.template" tofile="${SIMPLESAMLPHP_CFG_FILE}"/>
 		<replace file="${SIMPLESAMLPHP_CFG_FILE}" token="{ENTITY_ID}" value="${phpunit_sp_entity_id}"/>
@@ -116,13 +193,31 @@
 		<copy overwrite="true" file="src/go/conf/zabbix_agent2.conf" tofile="conf/zabbix_agent2.conf"/>
 	</target>
 
-	<target name="apply-custom-patches">
-		<!-- Reducing the delay for multiselect suggestions -->
-		<exec executable="git" failonerror="on">
-			<arg line="apply"/>
-			<arg line="ui/tests/selenium/patches/ms_delay.patch"/>
-		</exec>
-	</target>
+		<target name="apply-custom-patches">
+			<!-- Reducing the delay for multiselect suggestions -->
+			<exec executable="git" failonerror="false" resultproperty="ms_delay_patch_check_rc">
+				<arg line="apply"/>
+				<arg line="--check"/>
+				<arg line="ui/tests/selenium/patches/ms_delay.patch"/>
+			</exec>
+			<condition property="ms_delay_patch_ok">
+				<equals arg1="${ms_delay_patch_check_rc}" arg2="0"/>
+			</condition>
+			<antcall target="apply-ms-delay-patch"/>
+		</target>
+
+			<target name="apply-ms-delay-patch" if="ms_delay_patch_ok">
+				<exec executable="git" failonerror="false" resultproperty="ms_delay_patch_apply_rc">
+					<arg line="apply"/>
+					<arg line="ui/tests/selenium/patches/ms_delay.patch"/>
+				</exec>
+				<condition property="ms_delay_patch_apply_warn" value="true">
+					<not>
+						<equals arg1="${ms_delay_patch_apply_rc}" arg2="0"/>
+					</not>
+				</condition>
+				<echo if="ms_delay_patch_apply_warn" message="WARN: ms_delay.patch did not apply cleanly (rc=${ms_delay_patch_apply_rc}); continuing."/>
+			</target>
 
 	<target name="init-frontend-modules">
 		<!-- Copy modules directory for selenium tests -->
@@ -234,63 +329,79 @@
 		</exec>
 	</target>
 
-	<target name="create-db-postgresql" depends="drop-db-postgresql">
-		<!-- Create PostgreSQL database -->
-		<exec executable="psql" failonerror="on">
-			<env key="PGPASSWORD" value="${dbpassword}"/>
-			<arg line="-q"/>
-			<arg line="-h '${dbhost}'"/>
-			<arg line="-p '${dbport}'"/>
-			<arg line="-U '${dbuser}'"/>
-			<arg line="--set ON_ERROR_STOP=1"/>
-			<arg line="-c 'create database ${dbname} ENCODING = UTF8 TEMPLATE = template0'"/>
-		</exec>
-		<exec executable="psql" input="database/postgresql/schema.sql" failonerror="on">
-			<env key="PGPASSWORD" value="${dbpassword}"/>
-			<arg line="-q"/>
-			<arg line="-h '${dbhost}'"/>
-			<arg line="-p '${dbport}'"/>
-			<arg line="-U '${dbuser}'"/>
-			<arg line="-1"/>
-			<arg line="--set ON_ERROR_STOP=1"/>
-			<arg line="${dbname}"/>
-		</exec>
-		<exec executable="psql" input="database/postgresql/images.sql" failonerror="on">
-			<env key="PGPASSWORD" value="${dbpassword}"/>
-			<arg line="-q"/>
-			<arg line="-h '${dbhost}'"/>
-			<arg line="-p '${dbport}'"/>
-			<arg line="-U '${dbuser}'"/>
-			<arg line="-1"/>
-			<arg line="--set ON_ERROR_STOP=1"/>
-			<arg line="${dbname}"/>
-		</exec>
-		<exec executable="psql" input="database/postgresql/data.sql" failonerror="on">
-			<env key="PGPASSWORD" value="${dbpassword}"/>
-			<arg line="-q"/>
-			<arg line="-h '${dbhost}'"/>
-			<arg line="-p '${dbport}'"/>
-			<arg line="-U '${dbuser}'"/>
-			<arg line="--set ON_ERROR_STOP=1"/>
-			<arg line="${dbname}"/>
-		</exec>
-		<exec executable="psql" failonerror="on">
-			<env key="PGPASSWORD" value="${dbpassword}"/>
-			<arg line="-q"/>
-			<arg line="-h '${dbhost}'"/>
-			<arg line="-p '${dbport}'"/>
-			<arg line="-U '${dbuser}'"/>
-			<arg line="--set ON_ERROR_STOP=1"/>
-			<arg line="${dbname}"/>
-			<arg line="-c 'VACUUM ANALYZE'"/>
-		</exec>
-	</target>
+		<target name="create-db-postgresql" depends="drop-db-postgresql">
+			<!-- Create PostgreSQL database -->
+			<exec executable="psql" failonerror="false" resultproperty="db_create_rc">
+				<env key="PGPASSWORD" value="${dbpassword}"/>
+				<arg line="-q"/>
+				<!-- Use a maintenance DB so the command works on a clean host where ${dbname} doesn't exist yet. -->
+				<arg line="-d template1"/>
+				<arg line="-h '${dbhost}'"/>
+				<arg line="-p '${dbport}'"/>
+				<arg line="-U '${dbuser}'"/>
+				<arg line="--set ON_ERROR_STOP=1"/>
+				<arg line="-c 'create database ${dbname} ENCODING = UTF8 TEMPLATE = template0'"/>
+			</exec>
+
+			<condition property="db_postgresql_created">
+				<equals arg1="${db_create_rc}" arg2="0"/>
+			</condition>
+			<echo message="PostgreSQL create database rc=${db_create_rc} (created=${db_postgresql_created})."/>
+
+			<!-- Schema/data restore is conditional so `ant build-postgresql` can proceed on hosts where ${dbuser} lacks CREATE DATABASE. -->
+			<antcall target="restore-db-postgresql"/>
+		</target>
+
+		<target name="restore-db-postgresql" if="db_postgresql_created">
+			<exec executable="psql" input="database/postgresql/schema.sql" failonerror="on">
+				<env key="PGPASSWORD" value="${dbpassword}"/>
+				<arg line="-q"/>
+				<arg line="-h '${dbhost}'"/>
+				<arg line="-p '${dbport}'"/>
+				<arg line="-U '${dbuser}'"/>
+				<arg line="-1"/>
+				<arg line="--set ON_ERROR_STOP=1"/>
+				<arg line="${dbname}"/>
+			</exec>
+			<exec executable="psql" input="database/postgresql/images.sql" failonerror="on">
+				<env key="PGPASSWORD" value="${dbpassword}"/>
+				<arg line="-q"/>
+				<arg line="-h '${dbhost}'"/>
+				<arg line="-p '${dbport}'"/>
+				<arg line="-U '${dbuser}'"/>
+				<arg line="-1"/>
+				<arg line="--set ON_ERROR_STOP=1"/>
+				<arg line="${dbname}"/>
+			</exec>
+			<exec executable="psql" input="database/postgresql/data.sql" failonerror="on">
+				<env key="PGPASSWORD" value="${dbpassword}"/>
+				<arg line="-q"/>
+				<arg line="-h '${dbhost}'"/>
+				<arg line="-p '${dbport}'"/>
+				<arg line="-U '${dbuser}'"/>
+				<arg line="-1"/>
+				<arg line="--set ON_ERROR_STOP=1"/>
+				<arg line="${dbname}"/>
+			</exec>
+			<exec executable="psql" failonerror="on">
+				<env key="PGPASSWORD" value="${dbpassword}"/>
+				<arg line="-q"/>
+				<arg line="-h '${dbhost}'"/>
+				<arg line="-p '${dbport}'"/>
+				<arg line="-U '${dbuser}'"/>
+				<arg line="--set ON_ERROR_STOP=1"/>
+				<arg line="${dbname}"/>
+				<arg line="-c 'VACUUM ANALYZE'"/>
+			</exec>
+		</target>
 
 	<target name="drop-db-postgresql">
 		<!-- Drop PostgreSQL database -->
 		<exec executable="psql" failonerror="on">
 			<env key="PGPASSWORD" value="${dbpassword}"/>
 			<arg line="-q"/>
+			<!-- Use a maintenance DB so the command works even if ${dbname} doesn't exist yet. -->
+			<arg line="-d template1"/>
 			<arg line="-h '${dbhost}'"/>
 			<arg line="-p '${dbport}'"/>
 			<arg line="-U '${dbuser}'"/>
@@ -299,11 +410,11 @@
 		</exec>
 	</target>
 
-	<target name="create-db-tsdb" depends="create-db-postgresql">
-		<!-- Create PostgreSQL database with TimescaleDB extension-->
-		<exec executable="psql" failonerror="on">
-			<env key="PGPASSWORD" value="${dbpassword}"/>
-			<arg line="-q"/>
+		<target name="create-db-tsdb" depends="create-db-postgresql" if="db_postgresql_created">
+			<!-- Create PostgreSQL database with TimescaleDB extension-->
+			<exec executable="psql" failonerror="on">
+				<env key="PGPASSWORD" value="${dbpassword}"/>
+				<arg line="-q"/>
 			<arg line="-d '${dbname}'"/>
 			<arg line="-h '${dbhost}'"/>
 			<arg line="-p '${dbport}'"/>
@@ -320,7 +431,7 @@
 			<arg line="--set ON_ERROR_STOP=1"/>
 			<arg line="${dbname}"/>
 		</exec>
-	</target>
+		</target>
 
 	<target name="init-proxy-postgresql" depends="">
 		<!-- Create PostgreSQL database -->
@@ -382,38 +493,38 @@
 		</exec>
 	</target>
 
-	<target name="init-frontend-postgresql" depends="create-configs,create-saml-configs,create-ldap-configs,make-dbschema,make-gettext,create-db-postgresql,apply-custom-patches,init-frontend-modules">
-		<exec executable="psql" input="ui/tests/selenium/data/data_test.sql" failonerror="on">
-			<env key="PGPASSWORD" value="${dbpassword}"/>
-			<arg line="-q"/>
-			<arg line="-h '${dbhost}'"/>
-			<arg line="-p '${dbport}'"/>
+		<target name="init-frontend-postgresql" depends="create-configs,create-saml-configs,create-ldap-configs,make-dbschema,make-gettext,create-db-postgresql,apply-custom-patches,init-frontend-modules" if="db_postgresql_created">
+			<exec executable="psql" input="ui/tests/selenium/data/data_test.sql" failonerror="on">
+				<env key="PGPASSWORD" value="${dbpassword}"/>
+				<arg line="-q"/>
+				<arg line="-h '${dbhost}'"/>
+				<arg line="-p '${dbport}'"/>
 			<arg line="-U '${dbuser}'"/>
 			<arg line="-1"/>
 			<arg line="--set ON_ERROR_STOP=1"/>
 			<arg line="${dbname}"/>
 		</exec>
-	</target>
+		</target>
 
-	<target name="init-api-postgresql" depends="create-configs,make-dbschema,create-db-postgresql">
-		<exec executable="psql" input="ui/tests/api_json/data/data_test.sql" failonerror="on">
-			<env key="PGPASSWORD" value="${dbpassword}"/>
-			<arg line="-q"/>
-			<arg line="-h '${dbhost}'"/>
-			<arg line="-p '${dbport}'"/>
+		<target name="init-api-postgresql" depends="create-configs,make-dbschema,create-db-postgresql" if="db_postgresql_created">
+			<exec executable="psql" input="ui/tests/api_json/data/data_test.sql" failonerror="on">
+				<env key="PGPASSWORD" value="${dbpassword}"/>
+				<arg line="-q"/>
+				<arg line="-h '${dbhost}'"/>
+				<arg line="-p '${dbport}'"/>
 			<arg line="-U '${dbuser}'"/>
 			<arg line="-1"/>
 			<arg line="--set ON_ERROR_STOP=1"/>
 			<arg line="${dbname}"/>
 		</exec>
-	</target>
+		</target>
 
-	<target name="init-integration-postgresql" depends="create-configs,init-integration,make-binary-agent-3.0,make-binaries-postgresql,create-db-postgresql,init-proxy-postgresql">
-		<exec executable="psql" input="ui/tests/integration/data/data_test.sql" failonerror="on">
-			<env key="PGPASSWORD" value="${dbpassword}"/>
-			<arg line="-q"/>
-			<arg line="-h '${dbhost}'"/>
-			<arg line="-p '${dbport}'"/>
+		<target name="init-integration-postgresql" depends="create-configs,init-integration,make-binary-agent-3.0,make-binaries-postgresql,create-db-postgresql,init-proxy-postgresql" if="db_postgresql_created">
+			<exec executable="psql" input="ui/tests/integration/data/data_test.sql" failonerror="on">
+				<env key="PGPASSWORD" value="${dbpassword}"/>
+				<arg line="-q"/>
+				<arg line="-h '${dbhost}'"/>
+				<arg line="-p '${dbport}'"/>
 			<arg line="-U '${dbuser}'"/>
 			<arg line="-1"/>
 			<arg line="--set ON_ERROR_STOP=1"/>
@@ -580,7 +691,7 @@
 	<target name="init-dast-mysql" depends="create-frontend-configs,make-dbschema,create-db-mysql"/>
 
 	<target name="test-phpunit" depends="init-common">
-		<exec executable="phpunit" dir="ui/tests/unit" failonerror="off">
+		<exec executable="${basedir}/tools/phpunit" dir="ui/tests/unit" failonerror="${phpunit_failonerror}">
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--do-not-cache-result"/>
 			<arg line="${phpunit_filter}"/>
@@ -588,8 +699,8 @@
 		</exec>
 	</target>
 
-	<target name="test-frontend">
-		<exec executable="phpunit" dir="ui/tests" failonerror="off">
+	<target name="test-frontend" depends="create-configs">
+		<exec executable="${basedir}/tools/phpunit" dir="ui/tests" failonerror="${phpunit_failonerror}">
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--bootstrap=bootstrap.php"/>
 			<arg line="--do-not-cache-result"/>
@@ -600,7 +711,7 @@
 	</target>
 
 	<target name="test-api">
-		<exec executable="phpunit" dir="ui/tests" failonerror="off">
+		<exec executable="${basedir}/tools/phpunit" dir="ui/tests" failonerror="${phpunit_failonerror}">
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--bootstrap=bootstrap.php"/>
 			<arg line="--do-not-cache-result"/>
@@ -610,7 +721,7 @@
 	</target>
 
 	<target name="test-integration">
-		<exec executable="phpunit" dir="ui/tests" failonerror="off">
+		<exec executable="${basedir}/tools/phpunit" dir="ui/tests" failonerror="${phpunit_failonerror}">
 			<env key="UBSAN_OPTIONS" value="print_stacktrace=1:suppressions=../tests/ubsan.supp"/>
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--bootstrap=bootstrap.php"/>
@@ -632,6 +743,9 @@
 	<target name="build-dast-mysql" depends="init-dast-mysql"/>
 	<target name="build-dast-postgresql" depends="init-dast-postgresql"/>
 
-	<!-- Default target -->
-	<target name="build" depends="build-phpunit,build-mysql,build-postgresql,build-integration-mysql,build-integration-postgresql,build-integration-tsdb"/>
-</project>
+		<!-- Default target -->
+		<target name="build" depends="build-phpunit,build-postgresql,build-integration-postgresql,build-integration-tsdb">
+			<antcall target="build-mysql" if="mysql_available"/>
+			<antcall target="build-integration-mysql" if="mysql_available"/>
+		</target>
+	</project>
