@@ -17,6 +17,19 @@
 include __DIR__."/bootstrap.php";
 include __DIR__."/include/web/CPage.php";
 
+// `Facebook\WebDriver`'s HTTP executor uses PHP cURL functions.
+// Some CI/lint environments may not have the `curl` extension installed; in that case,
+// "show-browser-info" should degrade gracefully instead of fatalling.
+if (!function_exists('curl_init')) {
+	echo "***********************************************************\n".
+	"Frontend URL: ".PHPUNIT_URL."\n".
+	"Browser:      (skipped)\n".
+	"Version:      (n/a)\n".
+	"PHP version:  ".phpversion()."\n".
+	"***********************************************************\n";
+	exit(0);
+}
+
 class CBrowserStats extends CPage {
 	public function getBrowserInfo() {
 		$capabilities = $this->driver->getCapabilities();
