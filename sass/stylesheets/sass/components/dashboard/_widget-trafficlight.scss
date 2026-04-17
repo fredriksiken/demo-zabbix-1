@@ -1,0 +1,80 @@
+// Traffic light widget colors.
+$trafficlight-green-bg-color: $status-green-bg-color;
+$trafficlight-yellow-bg-color: $status-yellow-bg-color;
+$trafficlight-red-bg-color: $status-red-bg-color;
+
+// Widget view.
+div.dashboard-widget-trafficlight {
+	.trafficlight-widget {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+	}
+
+	.trafficlight-lamps {
+		display: flex;
+		gap: 8px;
+		align-items: center;
+	}
+
+	.trafficlight-lamp {
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		opacity: .25;
+	}
+
+	.trafficlight-lamp-green {
+		background-color: $trafficlight-green-bg-color;
+	}
+
+	.trafficlight-lamp-yellow {
+		background-color: $trafficlight-yellow-bg-color;
+	}
+
+	.trafficlight-lamp-red {
+		background-color: $trafficlight-red-bg-color;
+	}
+
+	.trafficlight-lamp.is-active {
+		opacity: 1;
+	}
+
+	.trafficlight-lamp.is-inactive {
+		opacity: .25;
+	}
+
+	.trafficlight-summary {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.trafficlight-state-label {
+		font-weight: 600;
+	}
+
+	.trafficlight-state-counts {
+		color: $font-alt-color;
+	}
+
+	.is-state-red {
+		.trafficlight-state-label {
+			color: $trafficlight-red-bg-color;
+		}
+	}
+
+	.is-state-yellow {
+		.trafficlight-state-label {
+			color: $trafficlight-yellow-bg-color;
+		}
+	}
+
+	.is-state-green {
+		.trafficlight-state-label {
+			color: $trafficlight-green-bg-color;
+		}
+	}
+}
+
