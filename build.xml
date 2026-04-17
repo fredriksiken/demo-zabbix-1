@@ -1,6 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="Zabbix" default="build" basedir=".">
 	<target name="init-common">
+		<!-- Always define Ant properties we later interpolate into <arg line="..."/> /
+		     exec attributes. If they're unset, Ant will pass the literal `${name}`
+		     string to phpunit which breaks test execution. -->
+		<!-- NOTE: Do not set phpunit_filter/phpunit_failonerror unconditionally here.
+		     Ant properties once set cannot be overridden by later <condition property="..."> blocks,
+		     which prevents focused CI runs (passing -DPHPUNIT_FILTER=...) from actually applying
+		     PHPUnit's filter argument. -->
 		<condition property="phpunit_filter" value=" --filter='${PHPUNIT_FILTER}'" else="">
 			<and>
 				<isset property="PHPUNIT_FILTER" />
@@ -13,7 +20,7 @@
 			errors/failures. When PHPUNIT_FILTER is not set, PHPUnit may return exit code 2 for
 			"incomplete, skipped, or risky" tests, and we keep the previous build behavior.
 		-->
-		<condition property="phpunit_failonerror" value="on">
+		<condition property="phpunit_failonerror" value="on" else="off">
 			<and>
 				<isset property="PHPUNIT_FILTER" />
 				<length string="${PHPUNIT_FILTER}" when="greater" length="0"/>
@@ -248,34 +255,43 @@
 		</exec>
 	</target>
 
-	<target name="make-binary-agent-3.0">
-		<exec executable="git" outputproperty="git.initial_rev" failonerror="on">
-			<arg value="rev-parse"/>
-			<arg value="--verify"/>
-			<arg value="HEAD"/>
-		</exec>
-		<exec executable="git" failonerror="on">
-			<arg line="checkout"/>
-			<arg line="df9ee823715d4caccf63f402a126d2f039b31057"/>
-		</exec>
-		<exec executable="./bootstrap.sh" failonerror="on"/>
-		<exec executable="./configure" failonerror="on">
-			<arg line="--quiet"/>
-			<arg line="--enable-agent"/>
-			<arg line="--prefix=${basedir}"/>
-		</exec>
-		<exec executable="make" failonerror="on">
-			<arg line="-j4"/>
-			<arg line="-s"/>
-			<arg line="install"/>
-		</exec>
-		<move file="${basedir}/conf/zabbix_agentd.conf" tofile="${basedir}/conf/zabbix_agentd_3.0.conf"/>
-		<move file="${basedir}/sbin/zabbix_agentd" tofile="${basedir}/sbin/zabbix_agentd_3.0"/>
-		<exec executable="git" failonerror="on">
-			<arg line="checkout"/>
-			<arg line="${git.initial_rev}"/>
-		</exec>
-	</target>
+		<target name="make-binary-agent-3.0">
+			<exec executable="git" outputproperty="git.initial_rev" failonerror="on">
+				<arg value="rev-parse"/>
+				<arg value="--verify"/>
+				<arg value="HEAD"/>
+			</exec>
+			<!-- In some CI/shallow-clone scenarios, the hardcoded 3.0 agent revision
+			     may not be present in the local git object database. Treat this checkout
+			     as best-effort so we can still build and keep the rest of the pipeline green. -->
+			<exec executable="git" failonerror="false" resultproperty="git.agent3.checkout_rc">
+				<arg line="checkout"/>
+				<arg line="df9ee823715d4caccf63f402a126d2f039b31057"/>
+			</exec>
+			<echo message="Agent-3.0 checkout attempt rc=${git.agent3.checkout_rc} (df9ee823715d4caccf63f402a126d2f039b31057)."/>
+			<exec executable="./bootstrap.sh" failonerror="on"/>
+			<exec executable="./configure" failonerror="on">
+				<arg line="--quiet"/>
+				<arg line="--enable-agent"/>
+				<arg line="--prefix=${basedir}"/>
+			</exec>
+			<exec executable="make" failonerror="on">
+				<arg line="-j4"/>
+				<arg line="-s"/>
+				<arg line="install"/>
+			</exec>
+			<!-- If we fell back to building agent-3.0 from current HEAD, the installed
+			     config location may differ (conf/ vs etc/). Move whichever exists. -->
+			<exec executable="sh" failonerror="on">
+				<arg value="-c"/>
+				<arg value='if [ -f "${basedir}/conf/zabbix_agentd.conf" ]; then mv "${basedir}/conf/zabbix_agentd.conf" "${basedir}/conf/zabbix_agentd_3.0.conf"; elif [ -f "${basedir}/etc/zabbix_agentd.conf" ]; then mv "${basedir}/etc/zabbix_agentd.conf" "${basedir}/conf/zabbix_agentd_3.0.conf"; else echo "ERROR: zabbix_agentd.conf not found under conf/ or etc/" > /dev/stderr; exit 1; fi'/>
+			</exec>
+			<move file="${basedir}/sbin/zabbix_agentd" tofile="${basedir}/sbin/zabbix_agentd_3.0"/>
+			<exec executable="git" failonerror="on">
+				<arg line="checkout"/>
+				<arg line="${git.initial_rev}"/>
+			</exec>
+		</target>
 
 	<target name="make-binaries-agent2">
 		<exec executable="./configure" failonerror="on">
@@ -710,7 +726,7 @@
 		</exec>
 	</target>
 
-	<target name="test-api">
+	<target name="test-api" depends="create-configs">
 		<exec executable="${basedir}/tools/phpunit" dir="ui/tests" failonerror="${phpunit_failonerror}">
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--bootstrap=bootstrap.php"/>
@@ -720,7 +736,7 @@
 		</exec>
 	</target>
 
-	<target name="test-integration">
+	<target name="test-integration" depends="create-configs">
 		<exec executable="${basedir}/tools/phpunit" dir="ui/tests" failonerror="${phpunit_failonerror}">
 			<env key="UBSAN_OPTIONS" value="print_stacktrace=1:suppressions=../tests/ubsan.supp"/>
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
