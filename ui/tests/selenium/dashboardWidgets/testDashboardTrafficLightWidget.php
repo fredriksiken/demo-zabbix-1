@@ -28,4 +28,3 @@ class testDashboardTrafficLightWidget extends testWidgets {
 		$this->markTestSkipped('Traffic light widget Selenium test requires DB fixtures and a working WebDriver environment.');
 	}
 }
-
