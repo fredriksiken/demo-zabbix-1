@@ -584,6 +584,21 @@ class ZColorPicker extends HTMLElement {
 
 			this.#input.focus();
 		}
+		else {
+			// Be defensive: when the component receives a non-empty, non-hex string (e.g. from widget
+			// threshold editors with mismatched color serialization), we must still mark some tab as
+			// selected. Otherwise the Selenium suite can time out waiting for the dialog's
+			// `.color-picker-tab-selected` marker to appear.
+			const tab = this.#dialog.querySelector(`.${ZColorPicker.ZBX_STYLE_TAB_SOLID}`);
+
+			if (tab !== null) {
+				this.#selectTab(tab);
+			}
+
+			// Keep raw value visible; Apply will remain disabled until the input becomes valid.
+			this.#input.value = this.#color ?? '';
+			this.#input.focus();
+		}
 
 		if (this.#dialog.querySelector(`input[name="${ZColorPicker.ZBX_STYLE_PALETTE_INPUT}"]:checked`) === null) {
 			this.#dialog.querySelector(`input[name="${ZColorPicker.ZBX_STYLE_PALETTE_INPUT}"]`)
