@@ -89,6 +89,76 @@ class CTest extends TestCase {
 	protected $behaviors = null;
 
 	/**
+	 * Parse annotations from docblocks for this test case.
+	 *
+	 * Returns the structure expected by {@see getAnnotationsByType()}:
+	 * [
+	 *   'class'  => [ <annotationName> => [ <argString>, ... ]],
+	 *   'method' => [ <annotationName> => [ <argString>, ... ]],
+	 * ]
+	 */
+	protected function getAnnotations(): array {
+		$class = new ReflectionClass($this);
+		$methodName = $this->getName(false);
+
+		$parseDoc = static function (?string $doc): array {
+			if (!$doc) {
+				return [];
+			}
+
+			$result = [];
+			foreach (preg_split('/\R/', $doc) as $line) {
+				$line = trim($line);
+				$line = ltrim($line, '*');
+				$line = trim($line);
+
+				if ($line === '' || $line[0] !== '@') {
+					continue;
+				}
+
+				// Supported forms:
+				//   @tag arg1,arg2
+				//   @tag(arg1,arg2)
+				//   @tag
+				if (!preg_match('/^@([A-Za-z_][A-Za-z0-9_]*)(?:\(([^)]*)\))?(?:\s+(.*))?$/', $line, $m)) {
+					continue;
+				}
+
+				$name = $m[1];
+				$args = '';
+				if (isset($m[2]) && $m[2] !== '') {
+					$args = trim($m[2]);
+				}
+				elseif (isset($m[3]) && $m[3] !== null) {
+					$args = trim($m[3]);
+				}
+
+				if ($args !== '') {
+					$result[$name][] = $args;
+				}
+			}
+
+			return $result;
+		};
+
+		$classAnnotations = $parseDoc($class->getDocComment());
+
+		$methodAnnotations = [];
+		try {
+			$method = $class->getMethod($methodName);
+			$methodAnnotations = $parseDoc($method->getDocComment());
+		}
+		catch (ReflectionException $e) {
+			// Keep method annotations empty.
+		}
+
+		return [
+			'class' => $classAnnotations,
+			'method' => $methodAnnotations
+		];
+	}
+
+	/**
 	 * Overridden constructor for collecting data on data sets from dataProvider annotations.
 	 *
 	 * @param string $name
@@ -234,10 +304,15 @@ class CTest extends TestCase {
 		// Backup performed before test suite execution.
 		$suite_backup = $this->getAnnotationTokensByName($class_annotations, 'backup');
 
-		if ($suite_backup) {
-			self::$suite_backup = $suite_backup;
-			CDBHelper::backupTables(self::$suite_backup);
-		}
+			if ($suite_backup) {
+				self::$suite_backup = $suite_backup;
+				CDBHelper::backupTables(self::$suite_backup);
+				if (!CDBHelper::isValid()) {
+					self::zbxAddWarning(CDBHelper::$skip_reason ?: 'Skipping DB backups/restore due to broken DB state.');
+					self::markTestSuiteSkipped();
+					return;
+				}
+			}
 
 		$suite_backup_config = $this->getAnnotationTokensByName($class_annotations, 'backupConfig');
 
@@ -323,10 +398,15 @@ class CTest extends TestCase {
 			// Backup performed before every test case execution.
 			$case_backup = $this->getAnnotationTokensByName($method_annotations, 'backup');
 
-			if ($case_backup) {
-				$this->case_backup = $case_backup;
-				CDBHelper::backupTables($this->case_backup);
-			}
+				if ($case_backup) {
+					$this->case_backup = $case_backup;
+					CDBHelper::backupTables($this->case_backup);
+					if (!CDBHelper::isValid()) {
+						self::zbxAddWarning(CDBHelper::$skip_reason ?: 'Test case skipped because of broken DB state.');
+						self::markTestSuiteSkipped();
+						return;
+					}
+				}
 
 			$case_backup_config = $this->getAnnotationTokensByName($method_annotations, 'backupConfig');
 
@@ -351,10 +431,15 @@ class CTest extends TestCase {
 				// Backup performed once before first test case execution.
 				$case_backup_once = $this->getAnnotationTokensByName($method_annotations, 'backupOnce');
 
-				if ($case_backup_once) {
-					self::$case_backup_once = $case_backup_once;
-					CDBHelper::backupTables(self::$case_backup_once);
-				}
+					if ($case_backup_once) {
+						self::$case_backup_once = $case_backup_once;
+						CDBHelper::backupTables(self::$case_backup_once);
+						if (!CDBHelper::isValid()) {
+							self::zbxAddWarning(CDBHelper::$skip_reason ?: 'Test case skipped because of broken DB state.');
+							self::markTestSuiteSkipped();
+							return;
+						}
+					}
 
 				// Execute callbacks that should be executed once for multiple test cases.
 				self::executeCallbacks($this, $this->getAnnotationTokensByName($method_annotations, 'onBeforeOnce'), true);

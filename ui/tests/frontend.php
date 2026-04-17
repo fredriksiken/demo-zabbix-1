@@ -28,3 +28,9 @@ class All {
 		return $suite;
 	}
 }
+
+// PHPUnit's CLI invocation for this repo treats `frontend.php` as a suite class named
+// `frontend`. Keep a compatibility alias so the suite can be discovered even if the
+// internal aggregator class is renamed.
+class frontend extends All {
+}
