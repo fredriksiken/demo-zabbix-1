@@ -714,7 +714,7 @@
 									});
 
 								delete ms.values.searchTimeout;
-							}, 500);
+							}, 10);
 						}
 					}
 					else {

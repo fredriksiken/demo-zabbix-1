@@ -1,0 +1,44 @@
+.trafficlight-widget {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	height: 100%;
+
+	.trafficlight-lamps {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin: 0 0 6px 0;
+	}
+
+	.trafficlight-lamp {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: rgba(0, 0, 0, 0.15);
+	}
+
+	.trafficlight-lamp.is-active {
+		background: currentColor;
+	}
+
+	&.is-state-green {
+		color: #3BC97D;
+	}
+
+	&.is-state-yellow {
+		color: #FCCB1D;
+	}
+
+	&.is-state-red {
+		color: #E65660;
+	}
+
+	.trafficlight-summary {
+		font-size: 11px;
+		line-height: 14px;
+		text-align: center;
+		opacity: 0.9;
+	}
+}
+
