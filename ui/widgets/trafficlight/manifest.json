@@ -1,0 +1,27 @@
+{
+	"manifest_version": 2.0,
+	"id": "trafficlight",
+	"type": "widget",
+	"name": "Traffic light",
+	"namespace": "TrafficLight",
+	"version": "1.0",
+	"author": "Zabbix",
+	"description": "Displays an aggregated health status of monitored items using traffic-light thresholds.",
+	"url": "web_interface/frontend_sections/dashboards/widgets/trafficlight",
+	"widget": {
+		"size": {
+			"width": 6,
+			"height": 4
+		},
+		"js_class": "CWidgetTrafficLight"
+	},
+	"actions": {
+		"widget.trafficlight.view": {
+			"class": "WidgetView"
+		}
+	},
+	"assets": {
+		"js": ["class.widget.js"]
+	}
+}
+
