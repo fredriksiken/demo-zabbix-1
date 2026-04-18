@@ -1,0 +1,33 @@
+{
+	"manifest_version": 2.0,
+	"id": "trafficlight",
+	"type": "widget",
+	"name": "Traffic light",
+	"namespace": "TrafficLight",
+	"version": "1.0",
+	"author": "Zabbix",
+	"description": "Displays a single numeric item as a green, yellow or red traffic light.",
+	"url": "web_interface/frontend_sections/dashboards/widgets/traffic_light",
+	"widget": {
+		"size": {
+			"width": 8,
+			"height": 4
+		},
+		"js_class": "CWidgetTrafficLight",
+		"in": {
+			"itemid": {
+				"type": "_itemid",
+				"required": true
+			}
+		}
+	},
+	"actions": {
+		"widget.trafficlight.view": {
+			"class": "WidgetView"
+		}
+	},
+	"assets": {
+		"js": ["class.widget.js"],
+		"css": ["widget.css"]
+	}
+}
