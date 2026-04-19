@@ -168,6 +168,14 @@ class testDashboardTrafficLightWidget extends testWidgets {
 					'Red threshold' => self::YELLOW_VALUE
 				],
 				'error' => ['Invalid parameter "Red threshold": value must be greater than "Yellow threshold".']
+			]],
+			'unsupported item type is rejected' => [[
+				'fields' => [
+					'Item' => 'Character item',
+					'Yellow threshold' => self::YELLOW_VALUE,
+					'Red threshold' => self::RED_VALUE
+				],
+				'error' => ['Invalid parameter "Item": only numeric items are supported.']
 			]]
 		];
 	}
@@ -254,7 +262,6 @@ class testDashboardTrafficLightWidget extends testWidgets {
 				$indicator->hasClass('traffic-light-widget-indicator-active')
 			);
 		}
-
 	}
 
 	private function assertFallbackWidget(CWidgetElement $widget, string $message): void {

@@ -39,11 +39,12 @@ class WidgetForm extends CWidgetForm {
 	public function __construct(array $values, ?string $templateid) {
 		parent::__construct($values, $templateid);
 
-		if (array_key_exists('itemid', $this->values) && is_array($this->values['itemid'])
-				&& !array_key_exists(CWidgetField::FOREIGN_REFERENCE_KEY, $this->values['itemid'])) {
+		$itemids = $this->getSelectedItemIds($this->values['itemid'] ?? null);
+
+		if ($itemids !== null) {
 			$items = API::Item()->get([
 				'output' => ['itemid', 'value_type', 'units'],
-				'itemids' => $this->values['itemid'],
+				'itemids' => $itemids,
 				'webitems' => true
 			]);
 
@@ -55,13 +56,6 @@ class WidgetForm extends CWidgetForm {
 
 	public function validate(bool $strict = false): array {
 		$errors = parent::validate($strict);
-
-		if ($strict && $this->item === null
-				&& !array_key_exists(CWidgetField::FOREIGN_REFERENCE_KEY, $this->getFieldValue('itemid'))) {
-			$errors[] = _s('Invalid parameter "%1$s": %2$s.', _('Item'),
-				_('object does not exist, or you have no permissions to it')
-			);
-		}
 
 		if ($errors) {
 			return $errors;
@@ -104,5 +98,23 @@ class WidgetForm extends CWidgetForm {
 					->setDefault(self::DEFAULT_RED_THRESHOLD)
 					->setFlags(CWidgetField::FLAG_NOT_EMPTY | CWidgetField::FLAG_LABEL_ASTERISK)
 			);
+	}
+
+	private function getSelectedItemIds($value): ?array {
+		if ($value === null || $value === '') {
+			return null;
+		}
+
+		if (is_array($value)) {
+			if (array_key_exists(CWidgetField::FOREIGN_REFERENCE_KEY, $value)) {
+				return null;
+			}
+
+			$itemids = array_values(array_filter($value, static fn($itemid): bool => $itemid !== ''));
+
+			return $itemids !== [] ? $itemids : null;
+		}
+
+		return [(string) $value];
 	}
 }
