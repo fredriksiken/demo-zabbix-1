@@ -762,6 +762,35 @@ static int	DBpatch_7050052(void)
 	return ret;
 }
 
+static int	DBpatch_7050053(void)
+{
+	zbx_db_result_t	result;
+
+	if (0 == (DBget_program_type() & ZBX_PROGRAM_TYPE_SERVER))
+		return SUCCEED;
+
+	result = zbx_db_select("select null from module where id='trafficlight' and relative_path='widgets/trafficlight'");
+
+	if (NULL == result)
+		return FAIL;
+
+	if (NULL != zbx_db_fetch(result))
+	{
+		zbx_db_free_result(result);
+		return SUCCEED;
+	}
+
+	zbx_db_free_result(result);
+
+	if (ZBX_DB_OK > zbx_db_execute("insert into module (moduleid,id,relative_path,status,config) values"
+			" (" ZBX_FS_UI64 ",'trafficlight','widgets/trafficlight',%d,'[]')", zbx_db_get_maxid("module"), 1))
+	{
+		return FAIL;
+	}
+
+	return SUCCEED;
+}
+
 #endif
 
 DBPATCH_START(7050)
@@ -821,5 +850,6 @@ DBPATCH_ADD(7050049, 0, 1)
 DBPATCH_ADD(7050050, 0, 1)
 DBPATCH_ADD(7050051, 0, 1)
 DBPATCH_ADD(7050052, 0, 1)
+DBPATCH_ADD(7050053, 0, 1)
 
 DBPATCH_END()
