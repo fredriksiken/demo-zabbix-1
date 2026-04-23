@@ -28,3 +28,6 @@ class All {
 		return $suite;
 	}
 }
+
+class frontend extends All {
+}

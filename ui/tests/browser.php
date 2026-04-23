@@ -17,6 +17,22 @@
 include __DIR__."/bootstrap.php";
 include __DIR__."/include/web/CPage.php";
 
+$driver_address = defined('PHPUNIT_DRIVER_ADDRESS') ? PHPUNIT_DRIVER_ADDRESS : 'localhost';
+if (strpos($driver_address, ':') === false) {
+	$driver_address .= ':4444';
+}
+
+[$host, $port] = array_pad(explode(':', $driver_address, 2), 2, null);
+if (!is_string($host) || !is_numeric($port) || @fsockopen($host, (int) $port, $errno, $errstr, 1.0) === false) {
+	echo "***********************************************************\n".
+	"Frontend URL: ".PHPUNIT_URL."\n".
+	"Browser:      unavailable\n".
+	"Version:      unavailable\n".
+	"PHP version:  ".phpversion()."\n".
+	"***********************************************************\n";
+	exit(0);
+}
+
 class CBrowserStats extends CPage {
 	public function getBrowserInfo() {
 		$capabilities = $this->driver->getCapabilities();

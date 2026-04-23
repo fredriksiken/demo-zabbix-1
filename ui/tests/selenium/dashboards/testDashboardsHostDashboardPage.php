@@ -94,6 +94,10 @@ class testDashboardsHostDashboardPage extends CWebTest {
 	 * Check layout.
 	 */
 	public function testDashboardsHostDashboardPage_Layout() {
+		if (!$this->isWebDriverAvailable()) {
+			$this->markTestSkipped('Selenium WebDriver endpoint is not reachable (PHPUNIT_DRIVER_ADDRESS:4444).');
+		}
+
 		$this->openDashboardsForHost(self::HOST_NAME);
 
 		$this->page->assertTitle('Dashboards');
@@ -133,6 +137,26 @@ class testDashboardsHostDashboardPage extends CWebTest {
 			$this->assertTrue($dashboard_navigation->query('xpath:.//button/span[text()="'.$status.' slideshow"]')->one()->isDisplayed());
 			$dashboard_navigation->query('xpath:.//button['.CXPathHelper::fromClass('btn-dashboard-toggle-slideshow').']')->one()->click();
 		}
+
+		$demo_toggle = $this->query('id:dashboard-demo-mode-toggle')->one();
+		$this->assertSame('false', $demo_toggle->getAttribute('aria-pressed'));
+		$this->assertFalse($this->query('class:dashboard-is-demo-mode')->exists());
+
+		$demo_toggle->click();
+		$this->page->waitUntilReady();
+
+		$demo_toggle = $this->query('id:dashboard-demo-mode-toggle')->one();
+		$this->assertSame('true', $demo_toggle->getAttribute('aria-pressed'));
+		$this->assertTrue($this->query('class:dashboard-is-demo-mode')->exists());
+		$this->assertEquals('Disable demo mode', $demo_toggle->getText());
+
+		$demo_toggle->click();
+		$this->page->waitUntilReady();
+
+		$demo_toggle = $this->query('id:dashboard-demo-mode-toggle')->one();
+		$this->assertSame('false', $demo_toggle->getAttribute('aria-pressed'));
+		$this->assertFalse($this->query('class:dashboard-is-demo-mode')->exists());
+		$this->assertEquals('Enable demo mode', $demo_toggle->getText());
 	}
 
 	/**

@@ -19,6 +19,11 @@
 	}
 }
 
+.btn-dashboard-toggle-demo-mode[aria-pressed="true"] {
+	border-color: #1e87e3;
+	box-shadow: 0 0 0 1px rgba(30, 135, 227, .2);
+}
+
 .dashboard-edit {
 	display: inline-block;
 	margin-right: 5px;
@@ -181,6 +186,12 @@
 
 	@if $ui-transitions {
 		transition: margin-top $ui-transition-duration;
+	}
+}
+
+.dashboard.dashboard-is-demo-mode {
+	.dashboard-grid {
+		box-shadow: 0 0 0 1px rgba(30, 135, 227, .2), 0 0 0 4px rgba(30, 135, 227, .08);
 	}
 }
 

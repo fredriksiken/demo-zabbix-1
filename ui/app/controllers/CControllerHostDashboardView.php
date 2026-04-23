@@ -96,6 +96,7 @@ class CControllerHostDashboardView extends CController {
 				$pages_prepared = CDashboardHelper::preparePages($pages_raw, $dashboard['templateid'], true);
 
 				$dashboard['pages'] = $pages_prepared;
+				$dashboard['demo_mode'] = CSessionHelper::loadDashboardDemoMode();
 
 				$broadcast_requirements = CDashboardHelper::getBroadcastRequirements($pages_prepared);
 
@@ -118,6 +119,7 @@ class CControllerHostDashboardView extends CController {
 					'broadcast_requirements' => $broadcast_requirements,
 					'dashboard_host' => $this->host,
 					'dashboard_time_period' => $dashboard_time_period,
+					'demo_mode' => $dashboard['demo_mode'],
 					'active_tab' => CProfile::get('web.dashboard.filter.active', 1)
 				];
 			}

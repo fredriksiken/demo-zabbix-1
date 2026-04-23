@@ -53,11 +53,29 @@ $html_page = (new CHtmlPage())
 	->setWebLayoutMode($web_layout_mode)
 	->setDocUrl(CDocHelper::getUrl(CDocHelper::MONITORING_HOST_DASHBOARD_VIEW))
 	->setControls(
-		(new CTag('nav', true))
-			->addItem(
-				(new CList())->addItem(get_icon('kioskmode', ['mode' => $web_layout_mode]))
-			)
-			->setAttribute('aria-label', _('Content controls'))
+		(new CTag('nav', true,
+			(new CList())
+				->addItem(
+					(new CForm('post'))
+						->addVar('action', 'dashboard.demo.toggle')
+						->addVar(CSRF_TOKEN_NAME, CCsrfTokenHelper::get('dashboard.demo.toggle'))
+						->addVar('hostid', $data['dashboard_host']['hostid'])
+						->addVar('dashboardid', $data['dashboard']['dashboardid'])
+						->addVar('from', $data['dashboard_time_period']['from'])
+						->addVar('to', $data['dashboard_time_period']['to'])
+						->addItem(
+							(new CSubmit('dashboard-demo-mode-toggle',
+								$data['demo_mode'] ? _('Disable demo mode') : _('Enable demo mode')
+							))
+								->addClass(ZBX_STYLE_BTN_ALT)
+								->addClass(ZBX_STYLE_BTN_DASHBOARD_TOGGLE_DEMO_MODE)
+								->setAttribute('aria-pressed', $data['demo_mode'] ? 'true' : 'false')
+						)
+						->addStyle('display: inline-block;')
+						->addStyle('margin-right: 5px;')
+				)
+				->addItem(get_icon('kioskmode', ['mode' => $web_layout_mode]))
+		))->setAttribute('aria-label', _('Content controls'))
 	)
 	->setKioskModeControls(
 		(count($data['dashboard']['pages']) > 1)
@@ -149,6 +167,10 @@ if (count($data['dashboard']['pages']) > 1
 
 	if (count($data['dashboard']['pages']) > 1) {
 		$dashboard->addClass(ZBX_STYLE_DASHBOARD_IS_MULTIPAGE);
+	}
+
+	if ($data['demo_mode']) {
+		$dashboard->addClass(ZBX_STYLE_DASHBOARD_IS_DEMO_MODE);
 	}
 
 	if ($web_layout_mode != ZBX_LAYOUT_KIOSKMODE) {

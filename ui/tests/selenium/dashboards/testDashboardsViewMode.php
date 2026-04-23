@@ -158,6 +158,35 @@ class testDashboardsViewMode extends CLegacyWebTest {
 		$this->zbxTestAssertAttribute("//button[contains(@class, 'btn-kiosk')]", 'title', 'Kiosk mode');
 	}
 
+	public function testDashboardsViewMode_DemoModeToggle() {
+		if (!$this->isWebDriverAvailable()) {
+			$this->markTestSkipped('Selenium WebDriver endpoint is not reachable (PHPUNIT_DRIVER_ADDRESS:4444).');
+		}
+
+		$this->zbxTestLogin('zabbix.php?action=dashboard.view&dashboardid=1', false);
+		$this->page->waitUntilReady();
+
+		$toggle = $this->query('id:dashboard-demo-mode-toggle')->one();
+		$this->assertSame('false', $toggle->getAttribute('aria-pressed'));
+		$this->assertFalse($this->query('class:dashboard-is-demo-mode')->exists());
+
+		$toggle->click();
+		$this->page->waitUntilReady();
+
+		$toggle = $this->query('id:dashboard-demo-mode-toggle')->one();
+		$this->assertSame('true', $toggle->getAttribute('aria-pressed'));
+		$this->assertTrue($this->query('class:dashboard-is-demo-mode')->exists());
+		$this->assertEquals('Disable demo mode', $toggle->getText());
+
+		$toggle->click();
+		$this->page->waitUntilReady();
+
+		$toggle = $this->query('id:dashboard-demo-mode-toggle')->one();
+		$this->assertSame('false', $toggle->getAttribute('aria-pressed'));
+		$this->assertFalse($this->query('class:dashboard-is-demo-mode')->exists());
+		$this->assertEquals('Enable demo mode', $toggle->getText());
+	}
+
 	/**
 	 * Guest user needs to be out of "Disabled" group to have access to frontend.
 	 */
