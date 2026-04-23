@@ -18,6 +18,11 @@ class ComposerStaticInit3e832710df7ec8c92736d5724fad7cab
             'Symfony\\Component\\Yaml\\' => 23,
             'SCIM\\' => 5,
         ),
+        'F' =>
+        array (
+            'Facebook\\WebDriver\\' => 19,
+            'Firebase\\JWT\\' => 13,
+        ),
         'R' => 
         array (
             'RobRichards\\XMLSecLibs\\' => 23,
@@ -30,10 +35,6 @@ class ComposerStaticInit3e832710df7ec8c92736d5724fad7cab
         'O' => 
         array (
             'OneLogin\\' => 9,
-        ),
-        'F' => 
-        array (
-            'Firebase\\JWT\\' => 13,
         ),
         'D' => 
         array (
@@ -53,6 +54,10 @@ class ComposerStaticInit3e832710df7ec8c92736d5724fad7cab
         'SCIM\\' => 
         array (
             0 => __DIR__ . '/../..' . '/include/classes/scim',
+        ),
+        'Facebook\\WebDriver\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/facebook/webdriver/lib',
         ),
         'RobRichards\\XMLSecLibs\\' => 
         array (
