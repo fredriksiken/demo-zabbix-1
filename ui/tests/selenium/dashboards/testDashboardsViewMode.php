@@ -197,6 +197,12 @@ class testDashboardsViewMode extends CLegacyWebTest {
 		$toggle_hostid = $toggle->query('xpath:ancestor::form//input[@name="hostid"]')->one();
 
 		$this->assertSame((string) $hostid, $toggle_hostid->getAttribute('value'));
+
+		$toggle->click();
+		$this->page->waitUntilReady();
+
+		$this->assertStringContainsString('zabbix.php?action=dashboard.view', $this->page->getCurrentUrl());
+		$this->assertStringContainsString('hostid='.$hostid, $this->page->getCurrentUrl());
 	}
 
 	/**

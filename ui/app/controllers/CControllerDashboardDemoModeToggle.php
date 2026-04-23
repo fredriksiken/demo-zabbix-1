@@ -20,6 +20,7 @@ class CControllerDashboardDemoModeToggle extends CController {
 		$fields = [
 			'dashboardid' => 'db dashboard.dashboardid',
 			'hostid' => 'db hosts.hostid',
+			'return_action' => 'in dashboard.view,host.dashboard.view',
 			'from' => 'range_time',
 			'to' => 'range_time',
 			'new' => 'in 1',
@@ -43,8 +44,8 @@ class CControllerDashboardDemoModeToggle extends CController {
 	protected function doAction(): void {
 		CSessionHelper::toggleDashboardDemoMode();
 
-		$target_action = $this->hasInput('hostid') ? 'host.dashboard.view' : 'dashboard.view';
-		$url = (new CUrl('zabbix.php'))->setArgument('action', $target_action);
+		$url = (new CUrl('zabbix.php'))
+			->setArgument('action', $this->getInput('return_action', 'dashboard.view'));
 
 		foreach (['dashboardid', 'hostid', 'from', 'to'] as $argument) {
 			if ($this->hasInput($argument)) {
