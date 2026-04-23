@@ -79,6 +79,28 @@ $html_page = (new CHtmlPage())
 			)
 			->addItem(
 				(new CListItem(
+					(new CForm('post'))
+						->addVar('action', 'dashboard.demo.toggle')
+						->addVar(CSRF_TOKEN_NAME, CCsrfTokenHelper::get('dashboard.demo.toggle'))
+						->addVar('dashboardid', $data['dashboard']['dashboardid'])
+						->addVar('from', $data['dashboard_time_period']['from'])
+						->addVar('to', $data['dashboard_time_period']['to'])
+						->addVar('new', $data['dashboard']['dashboardid'] === null ? 1 : null)
+						->addVar('clone', $data['clone'] ? 1 : null)
+						->addItem(
+							(new CSubmit('dashboard-demo-mode-toggle',
+								$data['demo_mode'] ? _('Disable demo mode') : _('Enable demo mode')
+							))
+								->addClass(ZBX_STYLE_BTN_ALT)
+								->addClass(ZBX_STYLE_BTN_DASHBOARD_TOGGLE_DEMO_MODE)
+								->setAttribute('aria-pressed', $data['demo_mode'] ? 'true' : 'false')
+						)
+							->addStyle('display: inline-block;')
+							->addStyle('margin-right: 5px;')
+					))
+				)
+			->addItem(
+				(new CListItem(
 					(new CTag('nav', true,
 						(new CList())
 							->addItem(
@@ -199,6 +221,10 @@ if (count($data['dashboard']['pages']) > 1) {
 
 if ($data['dashboard']['dashboardid'] === null) {
 	$dashboard->addClass(ZBX_STYLE_DASHBOARD_IS_EDIT_MODE);
+}
+
+if ($data['demo_mode']) {
+	$dashboard->addClass(ZBX_STYLE_DASHBOARD_IS_DEMO_MODE);
 }
 
 if ($web_layout_mode != ZBX_LAYOUT_KIOSKMODE) {

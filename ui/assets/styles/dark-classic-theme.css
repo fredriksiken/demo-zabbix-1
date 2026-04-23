@@ -1644,6 +1644,10 @@ button {
 .btn-dashboard-kioskmode-toggle-slideshow.slideshow-state-stopped .slideshow-state-started {
   display: none; }
 
+.btn-dashboard-toggle-demo-mode[aria-pressed="true"] {
+  border-color: #1e87e3;
+  box-shadow: 0 0 0 1px rgba(30, 135, 227, 0.2); }
+
 .dashboard-edit {
   display: inline-block;
   margin-right: 5px;
@@ -1732,6 +1736,9 @@ button {
     margin-top: 2rem; }
   .dashboard-grid.reserve-header-lines-2 {
     margin-top: calc(4rem + 8px); }
+
+.dashboard.dashboard-is-demo-mode .dashboard-grid {
+  box-shadow: 0 0 0 1px rgba(30, 135, 227, 0.2), 0 0 0 4px rgba(30, 135, 227, 0.08); }
 
 .dashboard:not(.dashboard-is-multipage):not(.dashboard-is-edit-mode) .dashboard-navigation {
   display: none; }

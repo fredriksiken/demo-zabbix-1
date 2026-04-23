@@ -109,6 +109,7 @@ class CControllerDashboardView extends CController {
 		}
 
 		$dashboard['can_edit_dashboards'] = $this->checkAccess(CRoleHelper::ACTIONS_EDIT_DASHBOARDS);
+		$dashboard['demo_mode'] = CSessionHelper::loadDashboardDemoMode();
 
 		$hostid = $this->getInput('hostid', CProfile::get('web.dashboard.hostid', 0));
 
@@ -144,6 +145,7 @@ class CControllerDashboardView extends CController {
 			'dashboard_host' => $dashboard_host,
 			'dashboard_time_period' => $dashboard_time_period,
 			'clone' => $this->hasInput('clone'),
+			'demo_mode' => $dashboard['demo_mode'],
 			'active_tab' => CProfile::get('web.dashboard.filter.active', 1)
 		];
 

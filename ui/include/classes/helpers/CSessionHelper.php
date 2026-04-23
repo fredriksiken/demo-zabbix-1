@@ -19,6 +19,8 @@
  */
 class CSessionHelper {
 
+	private const KEY_DASHBOARD_DEMO_MODE = 'web.dashboard.demo_mode';
+
 	/**
 	 * Clear session data.
 	 *
@@ -87,5 +89,21 @@ class CSessionHelper {
 	 */
 	public static function getAll(): array {
 		return $_SESSION;
+	}
+
+	public static function loadDashboardDemoMode(): bool {
+		return self::has(self::KEY_DASHBOARD_DEMO_MODE) && (bool) self::get(self::KEY_DASHBOARD_DEMO_MODE);
+	}
+
+	public static function saveDashboardDemoMode(bool $enabled): void {
+		self::set(self::KEY_DASHBOARD_DEMO_MODE, $enabled ? 1 : 0);
+	}
+
+	public static function toggleDashboardDemoMode(): bool {
+		$enabled = !self::loadDashboardDemoMode();
+
+		self::saveDashboardDemoMode($enabled);
+
+		return $enabled;
 	}
 }
