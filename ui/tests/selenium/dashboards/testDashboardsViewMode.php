@@ -187,6 +187,18 @@ class testDashboardsViewMode extends CLegacyWebTest {
 		$this->assertEquals('Enable demo mode', $toggle->getText());
 	}
 
+	public function testDashboardsViewMode_DemoModeToggle_PreservesHostFilter() {
+		$hostid = CDBHelper::getValue("SELECT hostid FROM hosts WHERE host='Zabbix server'");
+
+		$this->zbxTestLogin('zabbix.php?action=dashboard.view&dashboardid=1&hostid='.$hostid, false);
+		$this->page->waitUntilReady();
+
+		$toggle = $this->query('id:dashboard-demo-mode-toggle')->one();
+		$toggle_hostid = $toggle->query('xpath:ancestor::form//input[@name="hostid"]')->one();
+
+		$this->assertSame((string) $hostid, $toggle_hostid->getAttribute('value'));
+	}
+
 	/**
 	 * Guest user needs to be out of "Disabled" group to have access to frontend.
 	 */
