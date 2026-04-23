@@ -11,16 +11,49 @@
 		<!-- Cleanup from the previous run -->
 		<delete dir="build/logs" failonerror="off"/>
 		<mkdir dir="build/logs"/>
+		<mkdir dir="build/logs/browser"/>
+		<mkdir dir="build/logs/screenshots"/>
+		<mkdir dir="build/components"/>
 		<mkdir dir="runtime"/>
 	</target>
 
 	<target name="create-frontend-configs">
-		<property name="dbtype" value="${DBTYPE}"/>
-		<property name="dbhost" value="${DBHOST}"/>
-		<property name="dbport" value="${DBPORT}"/>
-		<property name="dbname" value="${DBNAME}"/>
-		<property name="dbuser" value="${DBUSER}"/>
-		<property name="dbpassword" value="${DBPASSWORD}"/>
+		<condition property="dbtype" value="${DBTYPE}" else="POSTGRESQL">
+			<and>
+				<isset property="DBTYPE" />
+				<length string="${DBTYPE}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="dbhost" value="${DBHOST}" else="127.0.0.1">
+			<and>
+				<isset property="DBHOST" />
+				<length string="${DBHOST}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="dbport" value="${DBPORT}" else="5432">
+			<and>
+				<isset property="DBPORT" />
+				<length string="${DBPORT}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="dbname" value="${DBNAME}" else="zabbix">
+			<and>
+				<isset property="DBNAME" />
+				<length string="${DBNAME}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="dbuser" value="${DBUSER}" else="zabbix">
+			<and>
+				<isset property="DBUSER" />
+				<length string="${DBUSER}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="dbpassword" value="${DBPASSWORD}" else="zabbix">
+			<and>
+				<isset property="DBPASSWORD" />
+				<length string="${DBPASSWORD}" when="greater" length="0"/>
+			</and>
+		</condition>
 		<property name="phpunit_error_log" value="${PHPUNIT_ERROR_LOG}"/>
 		<property name="phpunit_port_prefix" value="${PHPUNIT_PORT_PREFIX}"/>
 
@@ -38,43 +71,92 @@
 	</target>
 
 	<target name="create-configs" depends="init-common,create-frontend-configs">
-		<property name="url" value="${URL}"/>
-		<property name="screenshot_dir" value="${SCREENSHOT_DIR}"/>
-		<property name="screenshot_url" value="${SCREENSHOT_URL}"/>
-		<property name="component_dir" value="${COMPONENT_DIR}"/>
-		<property name="phpunit_port_prefix" value="${PHPUNIT_PORT_PREFIX}"/>
-		<property name="screenshot_references_dir" value="${SCREENSHOT_REFERENCES_DIR}"/>
+		<condition property="url" value="${URL}" else="http://127.0.0.1/">
+			<and>
+				<isset property="URL" />
+				<length string="${URL}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="screenshot_dir" value="${SCREENSHOT_DIR}" else="${basedir}/build/logs/screenshots">
+			<and>
+				<isset property="SCREENSHOT_DIR" />
+				<length string="${SCREENSHOT_DIR}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="screenshot_url" value="${SCREENSHOT_URL}" else="http://127.0.0.1/build/logs/screenshots">
+			<and>
+				<isset property="SCREENSHOT_URL" />
+				<length string="${SCREENSHOT_URL}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="component_dir" value="${COMPONENT_DIR}" else="${basedir}/build/components">
+			<and>
+				<isset property="COMPONENT_DIR" />
+				<length string="${COMPONENT_DIR}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="phpunit_port_prefix" value="${PHPUNIT_PORT_PREFIX}" else="100">
+			<and>
+				<isset property="PHPUNIT_PORT_PREFIX" />
+				<length string="${PHPUNIT_PORT_PREFIX}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="screenshot_references_dir" value="${SCREENSHOT_REFERENCES_DIR}" else="${basedir}/build/logs/screenshots">
+			<and>
+				<isset property="SCREENSHOT_REFERENCES_DIR" />
+				<length string="${SCREENSHOT_REFERENCES_DIR}" when="greater" length="0"/>
+			</and>
+		</condition>
+		<condition property="phpunit_browser_log_dir" value="${PHPUNIT_BROWSER_LOG_DIR}" else="${basedir}/build/logs/browser">
+			<and>
+				<isset property="PHPUNIT_BROWSER_LOG_DIR" />
+				<length string="${PHPUNIT_BROWSER_LOG_DIR}" when="greater" length="0"/>
+			</and>
+		</condition>
 		<condition property="phpunit_driver_address" value="${PHPUNIT_DRIVER_ADDRESS}" else="localhost">
 			<and>
 				<isset property="PHPUNIT_DRIVER_ADDRESS" />
 				<length string="${PHPUNIT_DRIVER_ADDRESS}" when="greater" length="0"/>
 			</and>
 		</condition>
+		<condition property="phpunit_error_log" value="${PHPUNIT_ERROR_LOG}" else="${basedir}/build/logs/phpunit_error.log">
+			<and>
+				<isset property="PHPUNIT_ERROR_LOG" />
+				<length string="${PHPUNIT_ERROR_LOG}" when="greater" length="0"/>
+			</and>
+		</condition>
 		<property environment="env"/>
+		<condition property="phpunit_simplesaml_baseurl" value="${env.PHPUNIT_SIMPLESAML_BASEURL}">
+			<and>
+				<isset property="env.PHPUNIT_SIMPLESAML_BASEURL" />
+				<length string="${env.PHPUNIT_SIMPLESAML_BASEURL}" when="greater" length="0"/>
+			</and>
+		</condition>
 
 		<!-- Create bootstrap.php -->
 		<copy overwrite="true" file="ui/tests/bootstrap.php.template" tofile="ui/tests/bootstrap.php"/>
 		<replace file="ui/tests/bootstrap.php" token="{URL}" value="${url}"/>
 		<replace file="ui/tests/bootstrap.php" token="{BASEDIR}" value="${basedir}"/>
-		<replace file="ui/tests/bootstrap.php" token="{SCREENSHOT_DIR}" value="${screenshot_dir}"/>
+		<replace file="ui/tests/bootstrap.php" token="{SCREENSHOT_DIR}" value="${screenshot_dir}/"/>
 		<replace file="ui/tests/bootstrap.php" token="{SCREENSHOT_URL}" value="${screenshot_url}"/>
 		<replace file="ui/tests/bootstrap.php" token="{BINARY_DIR}" value="${basedir}/sbin/"/>
 		<replace file="ui/tests/bootstrap.php" token="{CONFIG_SOURCE_DIR}" value="${basedir}/conf/"/>
 		<replace file="ui/tests/bootstrap.php" token="{CONFIG_DIR}" value="${basedir}/etc/"/>
-		<replace file="ui/tests/bootstrap.php" token="{COMPONENT_DIR}" value="${component_dir}"/>
+		<replace file="ui/tests/bootstrap.php" token="{COMPONENT_DIR}" value="${component_dir}/"/>
 		<replace file="ui/tests/bootstrap.php" token="{PORT_PREFIX}" value="${phpunit_port_prefix}"/>
 		<replace file="ui/tests/bootstrap.php" token="{SCREENSHOT_REFERENCES_DIR}" value="${screenshot_references_dir}"/>
 		<replace file="ui/tests/bootstrap.php" token="{PHPUNIT_DRIVER_ADDRESS}" value="${phpunit_driver_address}"/>
+		<replace file="ui/tests/bootstrap.php" token="{PHPUNIT_BROWSER_LOG_DIR}" value="${phpunit_browser_log_dir}/"/>
 		<replace file="ui/tests/bootstrap.php" token="{PHPUNIT_DATA_SOURCES_DIR}" value="${basedir}/ui/tests/selenium/data/sources/"/>
 	</target>
 
 	<target name="show-browser-info">
-		<exec executable="php" failonerror="on">
-			<arg line="ui/tests/browser.php"/>
+		<exec executable="php" dir="ui/tests" failonerror="on">
+			<arg line="browser.php"/>
 		</exec>
 	</target>
 
-	<target name="create-saml-configs">
+	<target name="create-saml-configs" if="phpunit_simplesaml_baseurl">
 		<property name="phpunit_simplesaml_baseurl" value="${PHPUNIT_SIMPLESAML_BASEURL}"/>
 		<property name="phpunit_sp_entity_id" value="${PHPUNIT_SP_ENTITY_ID}"/>
 		<property name="url" value="${URL}"/>
@@ -118,9 +200,8 @@
 
 	<target name="apply-custom-patches">
 		<!-- Reducing the delay for multiselect suggestions -->
-		<exec executable="git" failonerror="on">
-			<arg line="apply"/>
-			<arg line="ui/tests/selenium/patches/ms_delay.patch"/>
+		<exec executable="bash" failonerror="on">
+			<arg line="-lc 'if git apply --reverse --check ui/tests/selenium/patches/ms_delay.patch >/dev/null 2>&amp;1; then exit 0; fi; git apply ui/tests/selenium/patches/ms_delay.patch'"/>
 		</exec>
 	</target>
 
@@ -236,14 +317,13 @@
 
 	<target name="create-db-postgresql" depends="drop-db-postgresql">
 		<!-- Create PostgreSQL database -->
-		<exec executable="psql" failonerror="on">
-			<env key="PGPASSWORD" value="${dbpassword}"/>
-			<arg line="-q"/>
-			<arg line="-h '${dbhost}'"/>
-			<arg line="-p '${dbport}'"/>
-			<arg line="-U '${dbuser}'"/>
-			<arg line="--set ON_ERROR_STOP=1"/>
-			<arg line="-c 'create database ${dbname} ENCODING = UTF8 TEMPLATE = template0'"/>
+		<exec executable="sudo" failonerror="on">
+			<arg line="-n -u postgres psql -q -d postgres --set ON_ERROR_STOP=1"/>
+			<arg line="-c 'drop database if exists ${dbname}'"/>
+		</exec>
+		<exec executable="sudo" failonerror="on">
+			<arg line="-n -u postgres psql -q -d postgres --set ON_ERROR_STOP=1"/>
+			<arg line="-c 'create database ${dbname} owner ${dbuser} ENCODING = UTF8 TEMPLATE = template0'"/>
 		</exec>
 		<exec executable="psql" input="database/postgresql/schema.sql" failonerror="on">
 			<env key="PGPASSWORD" value="${dbpassword}"/>
@@ -288,13 +368,8 @@
 
 	<target name="drop-db-postgresql">
 		<!-- Drop PostgreSQL database -->
-		<exec executable="psql" failonerror="on">
-			<env key="PGPASSWORD" value="${dbpassword}"/>
-			<arg line="-q"/>
-			<arg line="-h '${dbhost}'"/>
-			<arg line="-p '${dbport}'"/>
-			<arg line="-U '${dbuser}'"/>
-			<arg line="--set ON_ERROR_STOP=1"/>
+		<exec executable="sudo" failonerror="on">
+			<arg line="-n -u postgres psql -q -d postgres --set ON_ERROR_STOP=1"/>
 			<arg line="-c 'drop database if exists ${dbname}'"/>
 		</exec>
 	</target>
@@ -580,7 +655,7 @@
 	<target name="init-dast-mysql" depends="create-frontend-configs,make-dbschema,create-db-mysql"/>
 
 	<target name="test-phpunit" depends="init-common">
-		<exec executable="phpunit" dir="ui/tests/unit" failonerror="off">
+		<exec executable="${basedir}/tools/phpunit" dir="ui/tests/unit" failonerror="off">
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--do-not-cache-result"/>
 			<arg line="${phpunit_filter}"/>
@@ -588,8 +663,8 @@
 		</exec>
 	</target>
 
-	<target name="test-frontend">
-		<exec executable="phpunit" dir="ui/tests" failonerror="off">
+	<target name="test-frontend" depends="init-common">
+		<exec executable="${basedir}/tools/phpunit" dir="ui/tests" failonerror="off">
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--bootstrap=bootstrap.php"/>
 			<arg line="--do-not-cache-result"/>
@@ -599,8 +674,8 @@
 		</exec>
 	</target>
 
-	<target name="test-api">
-		<exec executable="phpunit" dir="ui/tests" failonerror="off">
+	<target name="test-api" depends="init-common">
+		<exec executable="${basedir}/tools/phpunit" dir="ui/tests" failonerror="off">
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--bootstrap=bootstrap.php"/>
 			<arg line="--do-not-cache-result"/>
@@ -609,8 +684,8 @@
 		</exec>
 	</target>
 
-	<target name="test-integration">
-		<exec executable="phpunit" dir="ui/tests" failonerror="off">
+	<target name="test-integration" depends="init-common">
+		<exec executable="${basedir}/tools/phpunit" dir="ui/tests" failonerror="off">
 			<env key="UBSAN_OPTIONS" value="print_stacktrace=1:suppressions=../tests/ubsan.supp"/>
 			<arg line="--log-junit=${basedir}/build/logs/phpunit.xml"/>
 			<arg line="--bootstrap=bootstrap.php"/>
