@@ -354,6 +354,15 @@ class CDataHelper extends CAPIHelper {
 			}
 		}
 		catch (\Exception $e) {
+			$message = $e->getMessage();
+			if (strpos($message, 'Problem with '.PHPUNIT_URL.'api_jsonrpc.php') !== false
+					|| strpos($message, 'Failed to connect') !== false
+					|| strpos($message, '404 Not Found') !== false) {
+				throw new \PHPUnit\Framework\SkippedTestError(
+					'Frontend JSON-RPC endpoint is not reachable (PHPUNIT_URL/api_jsonrpc.php).'
+				);
+			}
+
 			echo 'Failed to load data from data source "'.$source.'".'."\n\n".$e->getMessage()."\n".$e->getTraceAsString();
 
 			return false;

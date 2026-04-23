@@ -119,6 +119,34 @@ class CTest extends TestCase {
 	}
 
 	/**
+	 * Get annotations in the legacy PHPUnit array shape expected by the test harness.
+	 *
+	 * @return array{class: array<string, array<int, string>>, method: array<string, array<int, string>>}
+	 */
+	protected function getAnnotations() {
+		$reflection = new ReflectionObject($this);
+		$class_annotations = $this->parseAnnotationsFromDocComment($reflection->getDocComment());
+
+		$method_annotations = [];
+		try {
+			$method_name = $this->getName(false);
+			if ($method_name !== '' && $reflection->hasMethod($method_name)) {
+				$method_annotations = $this->parseAnnotationsFromDocComment(
+					$reflection->getMethod($method_name)->getDocComment()
+				);
+			}
+		}
+		catch (Throwable $exception) {
+			$method_annotations = [];
+		}
+
+		return [
+			'class' => $class_annotations,
+			'method' => $method_annotations
+		];
+	}
+
+	/**
 	 * Get annotations by type name.
 	 * Helper function for method / class annotation processing.
 	 *
@@ -153,6 +181,31 @@ class CTest extends TestCase {
 		foreach ($annotations[$name] as $annotation) {
 			foreach (explode(',', $annotation) as $token) {
 				$result[] = trim($token);
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Parse annotations from a doc comment into the legacy test harness format.
+	 *
+	 * @param string|false|null $docComment
+	 *
+	 * @return array<string, array<int, string>>
+	 */
+	private function parseAnnotationsFromDocComment($docComment): array {
+		$result = [];
+
+		if ($docComment === false || $docComment === null || $docComment === '') {
+			return $result;
+		}
+
+		if (preg_match_all('/^\s*\*\s*@([A-Za-z_][A-Za-z0-9_]*)\s*(.*?)\s*$/m', $docComment, $matches, PREG_SET_ORDER)) {
+			foreach ($matches as $match) {
+				$name = $match[1];
+				$value = trim($match[2] ?? '');
+				$result[$name][] = $value;
 			}
 		}
 

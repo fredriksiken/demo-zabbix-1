@@ -83,6 +83,7 @@ class CRouter {
 		'correlation.list'							=> [CControllerCorrelationList::class,								'layout.htmlpage',		'correlation.list'],
 		'correlation.update'						=> [CControllerCorrelationUpdate::class,							'layout.json',			null],
 		'dashboard.config.hash'						=> [CControllerDashboardConfigHash::class,							'layout.json',			null],
+		'dashboard.demo.toggle'						=> [CControllerDashboardDemoModeToggle::class,						'layout.json',			null],
 		'dashboard.delete'							=> [CControllerDashboardDelete::class,								null,					null],
 		'dashboard.list'							=> [CControllerDashboardList::class,								'layout.htmlpage',		'monitoring.dashboard.list'],
 		'dashboard.page.properties.check'			=> [CControllerDashboardPagePropertiesCheck::class,					'layout.json',			null],

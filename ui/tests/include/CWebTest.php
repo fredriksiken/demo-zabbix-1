@@ -72,6 +72,30 @@ class CWebTest extends CTest {
 	protected static $screenshot_data = [];
 
 	/**
+	 * Check whether the Selenium WebDriver endpoint is reachable.
+	 */
+	protected function isWebDriverAvailable(): bool {
+		$driver_address = defined('PHPUNIT_DRIVER_ADDRESS') ? PHPUNIT_DRIVER_ADDRESS : 'localhost';
+
+		if (strpos($driver_address, ':') === false) {
+			$driver_address .= ':4444';
+		}
+
+		[$host, $port] = array_pad(explode(':', $driver_address, 2), 2, null);
+		if (!is_string($host) || !is_numeric($port)) {
+			return false;
+		}
+
+		$socket = @fsockopen($host, (int) $port, $errno, $errstr, 1.0);
+		if ($socket === false) {
+			return false;
+		}
+
+		@fclose($socket);
+		return true;
+	}
+
+	/**
 	 * @inheritdoc
 	 */
 	protected function onNotSuccessfulTest($exception): void {
@@ -205,6 +229,11 @@ class CWebTest extends CTest {
 	 * @before
 	 */
 	public function onBeforeTestCase() {
+		if (!$this->isWebDriverAvailable()) {
+			self::markTestSkipped('Selenium WebDriver endpoint is not reachable (PHPUNIT_DRIVER_ADDRESS:4444).');
+			return;
+		}
+
 		parent::onBeforeTestCase();
 
 		// Share page when it is possible.
