@@ -25,6 +25,7 @@
 		font-size: 12px;
 		white-space: nowrap;
 		border-left: 3px solid transparent;
+		border-radius: 0 999px 999px 0;
 
 		@if $ui-transitions {
 			transition: color $ui-transition-duration ease-out;

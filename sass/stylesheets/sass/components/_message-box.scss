@@ -5,19 +5,20 @@ output {
 	align-items: center;
 	flex-shrink: 0;
 	min-height: 48px;
-	padding: 6px 10px;
+	padding: 10px 12px 10px 16px;
 	margin: 10px;
 	background: $ui-bg-color;
+	box-shadow: $ui-raised-shadow;
 	border-style: solid;
-	border-width: 2px 2px 2px 60px;
-	border-radius: 4px;
+	border-width: 1px 1px 1px 56px;
+	border-radius: $ui-surface-radius;
 
 	&::before {
 		@extend %icons-font;
 
 		position: absolute;
-		top: 6px;
-		left: -45px;
+		top: 8px;
+		left: -42px;
 		font-size: 32px;
 		color: rgba(#fff, .9);
 		text-shadow: 0 0 5px rgba(0, 0, 0, 0.9);
@@ -25,6 +26,7 @@ output {
 
 	> span {
 		font-size: $font-h4-size;
+		line-height: 1.35;
 	}
 
 	.msg-buttons {
@@ -64,8 +66,8 @@ output {
 	}
 
 	&.collapsible {
-		grid-template: 16.8px 1fr / max-content 1fr;
-		grid-gap: 6px 10px;
+		grid-template: 18px 1fr / max-content 1fr;
+		grid-gap: 8px 12px;
 
 		@if $ui-transitions {
 			transition: grid-template-rows $ui-transition-duration,
@@ -88,7 +90,7 @@ output {
 		}
 
 		.msg-details {
-			padding-top: 6px;
+			padding-top: 8px;
 			border-top: 1px dashed;
 			border-color: inherit;
 			opacity: 1;
@@ -116,6 +118,7 @@ output {
 
 	&.msg-bad {
 		border-color: $msg-bad-color;
+		background: linear-gradient(180deg, rgba($msg-bad-color, .05), rgba($ui-bg-color, 1));
 
 		&::before {
 			content: $zi-circle-warning-filled;
@@ -145,6 +148,7 @@ output {
 
 	&.msg-good {
 		border-color: $msg-good-color;
+		background: linear-gradient(180deg, rgba($msg-good-color, .04), rgba($ui-bg-color, 1));
 
 		&::before {
 			content: $zi-circle-check-filled;
@@ -153,6 +157,7 @@ output {
 
 	&.msg-info {
 		border-color: $msg-info-color;
+		background: linear-gradient(180deg, rgba($msg-info-color, .04), rgba($ui-bg-color, 1));
 
 		&::before {
 			content: $zi-circle-info-filled;
@@ -161,6 +166,7 @@ output {
 
 	&.msg-warning {
 		border-color: $msg-warning-color;
+		background: linear-gradient(180deg, rgba($msg-warning-color, .05), rgba($ui-bg-color, 1));
 
 		&::before {
 			content: $zi-circle-warning-filled;

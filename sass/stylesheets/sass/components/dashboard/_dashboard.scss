@@ -91,7 +91,7 @@
 
 				background-color: $ui-bg-color;
 				border: 1px solid $ui-border-color;
-				border-radius: 2px;
+				border-radius: $ui-control-radius;
 
 				@if $ui-transitions {
 					transition: background-color $ui-transition-duration,
@@ -136,6 +136,7 @@
 		li div.selected-tab {
 			background-color: $ui-bg-selected-color;
 			border: 1px solid transparent;
+			box-shadow: 0 0 0 3px $btn-focus-outline-color;
 
 			span {
 				color: $font-selected-color;
@@ -246,9 +247,10 @@
 	.dashboard-widget-placeholder-box {
 		position: relative;
 		overflow: hidden;
-		background-color: rgba($ui-bg-color, .7);
+		background: linear-gradient(180deg, rgba($ui-bg-color, .96), rgba($body-bg-color, .78));
 		border: 1px dashed $form-border-color;
-		box-shadow: 2px 2px 6px $action-shadow-color;
+		border-radius: $ui-surface-radius;
+		box-shadow: $ui-raised-shadow;
 		flex: 1;
 	}
 
@@ -305,6 +307,9 @@
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
+	border-radius: $ui-surface-radius;
+	box-shadow: $ui-panel-shadow;
+	overflow: hidden;
 }
 
 .dashboard-grid-widget-header {
@@ -313,16 +318,18 @@
 	left: .25rem;
 	right: .25rem;
 	height: 2rem;
-	padding-left: 10px;
+	padding-left: 12px;
 	display: flex;
 	flex-wrap: nowrap;
 	flex-direction: row;
 	overflow: hidden;
 	align-items: flex-start;
-	border: 1px solid $ui-border-color;
-	border-bottom: 0;
-	background-color: $ui-bg-color;
+	border: 0;
+	border-bottom: 1px solid $ui-border-color;
+	background: linear-gradient(180deg, rgba($ui-bg-color, .99) 0%, rgba($ui-bg-color, .94) 100%);
 	z-index: 10;
+	border-top-left-radius: $ui-surface-radius;
+	border-top-right-radius: $ui-surface-radius;
 
 	h4 {
 		flex-grow: 1;
@@ -391,8 +398,10 @@
 	height: calc(100% - 2rem);
 	padding-bottom: 8px;
 	overflow: auto;
-	border: 1px solid $ui-border-color;
-	background-color: $ui-bg-color;
+	border: 0;
+	background: rgba($ui-bg-color, .98);
+	border-bottom-left-radius: $ui-surface-radius;
+	border-bottom-right-radius: $ui-surface-radius;
 
 	@extend %webkit-scrollbar;
 
@@ -480,6 +489,7 @@
 	right: .25rem;
 	bottom: .25rem;
 	display: none;
+	border-radius: $ui-surface-radius;
 }
 
 .dashboard-grid-widget {
@@ -502,6 +512,8 @@
 			margin-top: 0;
 			height: 100%;
 			padding-top: 8px;
+			border-top-left-radius: $ui-surface-radius;
+			border-top-right-radius: $ui-surface-radius;
 
 			&.no-padding {
 				.dashboard-grid-widget-messages {
@@ -528,7 +540,7 @@
 			.dashboard-grid-widget-header {
 				height: 2rem;
 				margin-top: -2rem;
-				box-shadow: 0 -6px 8px -2px rgba(128, 128, 128, .15);
+				box-shadow: 0 -8px 18px -6px rgba(#1f2c33, .2);
 			}
 		}
 	}
