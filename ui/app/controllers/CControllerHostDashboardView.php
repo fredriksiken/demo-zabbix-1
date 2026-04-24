@@ -27,7 +27,12 @@ class CControllerHostDashboardView extends CController {
 			'hostid' => 'required|db hosts.hostid',
 			'dashboardid' => 'db dashboard.dashboardid',
 			'from' => 'range_time',
-			'to' => 'range_time'
+			'to' => 'range_time',
+			'filter_groupids' => 'array_id',
+			'filter_hostids' => 'array_id',
+			'filter_evaltype' => 'in '.TAG_EVAL_TYPE_AND_OR.','.TAG_EVAL_TYPE_OR,
+			'filter_tags' => 'array',
+			'filter_severities' => 'array_id'
 		];
 
 		$ret = $this->validateInput($fields) && $this->validateTimeSelectorPeriod();
@@ -109,6 +114,21 @@ class CControllerHostDashboardView extends CController {
 				updateTimeSelectorPeriod($time_selector_options);
 
 				$dashboard_time_period = getTimeSelectorPeriod($time_selector_options);
+				$filter_context = $this->getFilterContext();
+
+				$filter_groupids_ms = $filter_context['groupids']
+					? CArrayHelper::renameObjectsKeys(API::HostGroup()->get([
+						'output' => ['groupid', 'name'],
+						'groupids' => $filter_context['groupids']
+					]), ['groupid' => 'id'])
+					: [];
+
+				$filter_hostids_ms = $filter_context['hostids']
+					? CArrayHelper::renameObjectsKeys(API::Host()->get([
+						'output' => ['hostid', 'name'],
+						'hostids' => $filter_context['hostids']
+					]), ['hostid' => 'id'])
+					: [];
 
 				$data = [
 					'host_dashboards' => $host_dashboards,
@@ -118,6 +138,9 @@ class CControllerHostDashboardView extends CController {
 					'broadcast_requirements' => $broadcast_requirements,
 					'dashboard_host' => $this->host,
 					'dashboard_time_period' => $dashboard_time_period,
+					'filter_context' => $filter_context,
+					'filter_groupids_ms' => $filter_groupids_ms,
+					'filter_hostids_ms' => $filter_hostids_ms,
 					'active_tab' => CProfile::get('web.dashboard.filter.active', 1)
 				];
 			}
@@ -142,5 +165,15 @@ class CControllerHostDashboardView extends CController {
 		CArrayHelper::sort($dashboards, [['field' => 'name', 'order' => ZBX_SORT_UP]]);
 
 		return array_values($dashboards);
+	}
+
+	private function getFilterContext(): array {
+		return CAdHocFilterHelper::normalizeContext([
+			'groupids' => $this->getInput('filter_groupids', []),
+			'hostids' => $this->getInput('filter_hostids', []),
+			'evaltype' => $this->getInput('filter_evaltype', TAG_EVAL_TYPE_AND_OR),
+			'tags' => $this->getInput('filter_tags', []),
+			'severities' => $this->getInput('filter_severities', [])
+		]);
 	}
 }

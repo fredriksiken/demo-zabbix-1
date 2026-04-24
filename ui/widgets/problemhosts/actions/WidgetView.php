@@ -20,6 +20,7 @@ use API,
 	CArrayHelper,
 	CControllerDashboardWidgetView,
 	CControllerResponseData,
+	CAdHocFilterHelper,
 	CRoleHelper;
 
 class WidgetView extends CControllerDashboardWidgetView {
@@ -54,8 +55,26 @@ class WidgetView extends CControllerDashboardWidgetView {
 			$filter_severities = $this->fields_values['severities'] ?: range(TRIGGER_SEVERITY_NOT_CLASSIFIED,
 				TRIGGER_SEVERITY_COUNT - 1
 			);
+			$filter_evaltype = $this->fields_values['evaltype'];
+			$filter_tags = $this->fields_values['tags'] ?: null;
 			$filter_show_suppressed = $this->fields_values['show_suppressed'];
 			$filter_ext_ack = $this->fields_values['ext_ack'];
+
+			if (!$this->isTemplateDashboard()) {
+				$filter = CAdHocFilterHelper::mergeWidgetFilter([
+					'groupids' => $filter_groupids,
+					'hostids' => $filter_hostids,
+					'severities' => $filter_severities,
+					'evaltype' => $this->fields_values['evaltype'],
+					'tags' => $this->fields_values['tags']
+				], $this->getInput('filter_context', []));
+
+				$filter_groupids = $filter['groupids'];
+				$filter_hostids = $filter['hostids'];
+				$filter_severities = $filter['severities'];
+				$filter_evaltype = $filter['evaltype'];
+				$filter_tags = $filter['tags'];
+			}
 
 			if (!$this->isTemplateDashboard() && $this->fields_values['exclude_groupids']) {
 				$exclude_groupids = getSubGroups($this->fields_values['exclude_groupids']);
@@ -155,8 +174,8 @@ class WidgetView extends CControllerDashboardWidgetView {
 					'name' => $filter_problem
 				],
 				'severities' => $filter_severities,
-				'evaltype' => $this->fields_values['evaltype'],
-				'tags' => $this->fields_values['tags'] ?: null,
+				'evaltype' => $filter_evaltype ?? $this->fields_values['evaltype'],
+				'tags' => $filter_tags ?: null,
 				'acknowledged' => ($filter_ext_ack == EXTACK_OPTION_UNACK) ? false : null,
 				'suppressed' => ($filter_show_suppressed == ZBX_PROBLEM_SUPPRESSED_FALSE) ? false : null,
 				'symptom' => false

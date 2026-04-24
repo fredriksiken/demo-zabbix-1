@@ -20,6 +20,7 @@ use API,
 	CArrayHelper,
 	CControllerDashboardWidgetView,
 	CControllerResponseData,
+	CAdHocFilterHelper,
 	CRoleHelper,
 	Manager;
 
@@ -51,6 +52,22 @@ class WidgetView extends CControllerDashboardWidgetView {
 			}
 
 			$filter_maintenance = $this->fields_values['maintenance'] == 0 ? 0 : null;
+			$filter_evaltype = $this->fields_values['evaltype'];
+			$filter_tags = $this->fields_values['tags'] ?: null;
+
+			if (!$this->isTemplateDashboard()) {
+				$filter = CAdHocFilterHelper::mergeWidgetFilter([
+					'groupids' => $filter_groupids,
+					'hostids' => $filter_hostids,
+					'evaltype' => $this->fields_values['evaltype'],
+					'tags' => $this->fields_values['tags']
+				], $this->getInput('filter_context', []));
+
+				$filter_groupids = $filter['groupids'];
+				$filter_hostids = $filter['hostids'];
+				$filter_evaltype = $filter['evaltype'];
+				$filter_tags = $filter['tags'];
+			}
 
 			if (!$this->isTemplateDashboard() && $this->fields_values['exclude_groupids']) {
 				$exclude_groupids = getSubGroups($this->fields_values['exclude_groupids']);
@@ -117,8 +134,8 @@ class WidgetView extends CControllerDashboardWidgetView {
 				'output' => ['hostid'],
 				'groupids' => $groupids,
 				'hostids' => array_keys($hosts),
-				'evaltype' => $this->fields_values['evaltype'],
-				'tags' => $this->fields_values['tags'] ?: null,
+				'evaltype' => $filter_evaltype ?? $this->fields_values['evaltype'],
+				'tags' => $filter_tags ?: null,
 				'inheritedTags' => true,
 				'filter' => ['status' => HTTPTEST_STATUS_ACTIVE],
 				'preservekeys' => true

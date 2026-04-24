@@ -35,6 +35,7 @@ class CControllerDashboardWidgetView extends CController {
 		$this->setValidationRules([
 			'name' => 'string',
 			'fields' => 'array',
+			'filter_context' => 'array',
 			'templateid' => 'db dashboard.templateid'
 		]);
 	}
