@@ -1,6 +1,7 @@
 .ui-tabs-nav {
 	height: 30px;
 	line-height: 30px;
+	padding-bottom: 4px;
 	border-bottom: 1px solid $table-border-color;
 
 	li {
@@ -14,8 +15,9 @@
 	}
 
 	.ui-tabs-anchor:not(.btn) {
-		border: none;
-		padding: 8px 10px;
+		border: 1px solid transparent;
+		padding: 7px 12px;
+		border-radius: $ui-control-radius;
 
 		@if $ui-transitions {
 			transition: background-color $ui-controls-transition-duration ease-out;
@@ -25,14 +27,15 @@
 		&:focus,
 		&:active {
 			background-color: $ui-hover-bg-color;
+			border-color: rgba($ui-bg-selected-color, .18);
 		}
 	}
 
 	.ui-tabs-active {
 		.ui-tabs-anchor:not(.btn) {
-			padding-bottom: 6px;
-			background-color: transparent;
-			border-bottom: 3px solid $ui-tab-bg-selected-color;
+			padding-bottom: 7px;
+			background-color: rgba($ui-bg-selected-color, .08);
+			border-color: rgba($ui-bg-selected-color, .24);
 			color: $font-color;
 			cursor: default;
 		}

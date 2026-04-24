@@ -17,6 +17,8 @@
 		margin-bottom: 8px;
 		background-color: $ui-bg-color;
 		border: 1px solid $ui-border-color;
+		border-radius: $ui-surface-radius;
+		box-shadow: $ui-raised-shadow;
 
 		&.tabfilter-collapsed {
 			padding: 0 0 10px 0;
@@ -100,7 +102,7 @@
 	// Tab filter label li element.
 	.tabfilter-item-label {
 		display: inline-block;
-		border-radius: 2px;
+		border-radius: $ui-control-radius;
 		border: 1px solid transparent;
 		color: $tab-label-color;
 		margin-right: 2px;

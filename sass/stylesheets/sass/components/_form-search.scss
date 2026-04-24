@@ -12,12 +12,13 @@
 		color: $form-search-color;
 		background: $form-search-bg-color;
 		border: 1px solid $form-search-border-color;
-		border-radius: 3px;
+		border-radius: $ui-control-radius;
 
 		&:focus {
 			color: $form-search-focused-color;
 			background: $form-search-focused-bg-color;
 			border-color: $form-search-focused-border-color;
+			box-shadow: 0 0 0 3px $btn-focus-outline-color;
 
 			& ~ .btn-icon:not([disabled]) {
 				color: $form-search-icon-focus-color !important;
@@ -39,7 +40,7 @@
 
 		&:focus {
 			color: $form-search-icon-focus-color;
-			box-shadow: 0 0 0 1.5px $form-search-focused-border-color;
+			box-shadow: 0 0 0 3px $btn-focus-outline-color;
 		}
 	}
 }
@@ -54,7 +55,7 @@
 	background-color: $form-bg-color;
 	border: 1px solid $action-border-color;
 	border-top: 0;
-	box-shadow: 0 6px 10px 0 $action-shadow-color;
+	box-shadow: $ui-raised-shadow;
 
 	li {
 		display: block;

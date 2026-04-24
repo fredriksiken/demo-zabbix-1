@@ -26,6 +26,11 @@ $teal: #0f998b;
 $white: #ffffff !default;
 $teal: #0f998b;
 
+$ui-surface-radius: 10px !default;
+$ui-control-radius: 8px !default;
+$ui-panel-shadow: 0 10px 28px rgba(#1f2c33, .08) !default;
+$ui-raised-shadow: 0 4px 12px rgba(#1f2c33, .08) !default;
+
 $accent-color: $orange !default;
 $negative-color: $red !default;
 $positive-color: $green !default;
@@ -68,9 +73,9 @@ $font-color: #1f2c33 !default;
 $font-light-color: #acbbc2 !default;
 $font-selected-color: #ffffff !default;
 $font-alt-color: #768d99 !default;
-$body-bg-color: #ebeef0 !default;
+$body-bg-color: #eef2f6 !default;
 $overlay-bg-color: #ffffff !default;
-$overlay-border-color: #ccd5d9 !default;
+$overlay-border-color: #cad5df !default;
 
 // Icons.
 $icon-color: #768d99 !default;
@@ -142,23 +147,23 @@ $sidebar-server-name-color: rgba($menu-user-color, 0.5) !default;
 
 // UI.
 $ui-bg-color: #ffffff !default;
-$ui-border-color: #dfe4e7 !default;
-$ui-hover-bg-color: #e8f5ff !default;
+$ui-border-color: #d6dee6 !default;
+$ui-hover-bg-color: #edf5fc !default;
 $ui-selected-color: #fff !default;
 $ui-selected-hover-color: #dfe4e7 !default;
-$ui-bg-selected-color: #768d99 !default;
+$ui-bg-selected-color: #2f7fc6 !default;
 $ui-placeholder-background-color: $body-bg-color !default;
 $ui-highlighted-parent-background-color: lighten($body-bg-color, 4%) !default;
 $ui-sortable-helper-background-color: $ui-bg-color !default;
 $ui-sortable-helper-border-color: $ui-border-color !default;
 
-$action-hover-color: #e8f5ff !default;
-$action-border-color: #ccd5d9 !default;
-$action-shadow-color: rgba(#768d99, .5) !default;
+$action-hover-color: #edf5fc !default;
+$action-border-color: #cdd7df !default;
+$action-shadow-color: rgba(#1f2c33, .12) !default;
 
-$table-border-color: #ebeef0 !default;
+$table-border-color: #dce4eb !default;
 
-$ui-tab-bg-selected-color: #0275b8 !default;
+$ui-tab-bg-selected-color: #1d7bbd !default;
 $ui-tabfilter-item-border-color: #768d99 !default;
 
 $colorpicker-empty-color: #d40000 !default;
@@ -168,8 +173,8 @@ $form-font-color: $font-color !default;
 $form-bg-color: $ui-bg-color !default;
 $form-dark-bg-color: #f8f8f8 !default;
 $form-darker-bg-color: #ebebeb !default;
-$form-border-color: #acbbc2 !default;
-$form-focus-border-color: #02659f !default;
+$form-border-color: #b9c7d2 !default;
+$form-focus-border-color: #1d7bbd !default;
 $form-label-asterisk-color: $red;
 $form-fields-group-border-color: #ebeef0 !default;
 $form-field-hint-color: #5e7988 !default;
@@ -199,13 +204,13 @@ $form-radio-list-checked-color: $white !default;
 
 // Buttons.
 $btn-color: #ffffff !default;
-$btn-bg-color: #0275b8 !default;
+$btn-bg-color: #1d7bbd !default;
 $btn-border-color: $btn-bg-color !default;
-$btn-hover-bg-color: #02659f !default;
+$btn-hover-bg-color: #0f699f !default;
 $btn-hover-border-color: $btn-hover-bg-color !default;
 $btn-focus-bg-color: $btn-hover-bg-color !default;
 $btn-focus-border-color: $btn-focus-bg-color !default;
-$btn-focus-outline-color: rgba(#1e87e3, .35) !default;
+$btn-focus-outline-color: rgba(#1d7bbd, .2) !default;
 
 $btn-alt-color: #0275b8 !default;
 $btn-alt-bg-color: transparent !default;
@@ -235,7 +240,7 @@ $btn-back-text-color: #0275b8 !default;
 $btn-back-background-hover: $form-bg-color !default;
 
 // Links.
-$link-color: #0275b8 !default;
+$link-color: #1d7bbd !default;
 $link-hover-color: $link-color !default;
 $link-active-color: $link-color !default;
 $link-visited-color: $link-color !default;
@@ -243,11 +248,11 @@ $link-visited-color: $link-color !default;
 $link-alt-underline-color: #768d99 !default;
 
 // Error messages.
-$msg-bad-color: #dc3838 !default;
+$msg-bad-color: #d94b4b !default;
 $msg-bad-btn-color: $msg-bad-color !default;
-$msg-good-color: #29a847 !default;
-$msg-info-color: #0275b8 !default;
-$msg-warning-color: #f4af25 !default;
+$msg-good-color: #2f9b50 !default;
+$msg-info-color: #1d7bbd !default;
+$msg-warning-color: #d08b00 !default;
 
 // Tabfilter.
 $tab-label-color: $btn-color;

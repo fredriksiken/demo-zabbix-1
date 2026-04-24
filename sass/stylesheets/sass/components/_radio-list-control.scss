@@ -14,22 +14,22 @@
 		}
 
 		&:first-child {
-			border-top-left-radius: 3px;
-			border-bottom-left-radius: 3px;
+			border-top-left-radius: $ui-control-radius;
+			border-bottom-left-radius: $ui-control-radius;
 
 			label {
-				border-top-left-radius: 2px;
-				border-bottom-left-radius: 2px;
+				border-top-left-radius: ($ui-control-radius - 1px);
+				border-bottom-left-radius: ($ui-control-radius - 1px);
 			}
 		}
 
 		&:last-child {
-			border-top-right-radius: 3px;
-			border-bottom-right-radius: 3px;
+			border-top-right-radius: $ui-control-radius;
+			border-bottom-right-radius: $ui-control-radius;
 
 			label {
-				border-top-right-radius: 2px;
-				border-bottom-right-radius: 2px;
+				border-top-right-radius: ($ui-control-radius - 1px);
+				border-bottom-right-radius: ($ui-control-radius - 1px);
 			}
 		}
 	}
@@ -75,6 +75,7 @@
 			background-color: $ui-bg-selected-color;
 			position: relative;
 			z-index: 1;
+			box-shadow: 0 0 0 3px $btn-focus-outline-color;
 		}
 
 		&:focus + label {

@@ -25,9 +25,11 @@
 	margin-right: 3px;
 	min-height: 24px;
 	white-space: normal;
+	box-shadow: $ui-raised-shadow;
 
 	&.active {
 		border-color: $form-focus-border-color;
+		box-shadow: 0 0 0 3px $btn-focus-outline-color;
 	}
 
 	&[aria-disabled] {
@@ -160,6 +162,7 @@
 	white-space: normal;
 	color: $font-alt-color;
 	background-color: $form-bg-color;
+	border-radius: $ui-control-radius;
 
 	li {
 		display: block;
@@ -214,7 +217,8 @@
 	border: 1px solid $action-border-color;
 	overflow-y: auto;
 	@extend %webkit-scrollbar;
-	box-shadow: 0 6px 10px 0 $action-shadow-color;
+	box-shadow: $ui-panel-shadow;
+	border-radius: $ui-control-radius;
 }
 
 .suggest-found {

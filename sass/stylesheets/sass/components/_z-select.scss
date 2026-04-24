@@ -24,7 +24,7 @@ z-select {
 		word-break: break-all;
 		white-space: pre;
 		cursor: default;
-		border-radius: 0;
+		border-radius: $ui-control-radius;
 
 		@extend %form-input-style;
 		@extend %webkit-scrollbar;
@@ -45,7 +45,7 @@ z-select {
 			color: $font-color;
 			background-color: $form-bg-color;
 			border-color: $form-border-color;
-			box-shadow: none;
+			box-shadow: 0 0 0 3px $btn-focus-outline-color;
 		}
 
 		&.color-negative {
@@ -66,7 +66,8 @@ z-select {
 		overflow-x: hidden;
 		overflow-y: auto;
 		border: 1px solid;
-		box-shadow: 0 6px 10px 0 $action-shadow-color;
+		box-shadow: $ui-panel-shadow;
+		border-radius: $ui-control-radius;
 
 		@extend %form-input-style;
 		@extend %webkit-scrollbar;
@@ -121,7 +122,7 @@ z-select {
 		}
 
 		&.fall-upwards {
-			box-shadow: 0 -6px 10px 0 $action-shadow-color;
+			box-shadow: 0 -10px 24px rgba(#1f2c33, .12);
 		}
 	}
 

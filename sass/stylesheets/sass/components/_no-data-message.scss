@@ -2,20 +2,24 @@
 	display: grid;
 	align-content: center;
 	height: 100%;
+	padding: 1rem;
 	color: $font-alt-color;
 	text-align: center;
+	background: linear-gradient(180deg, rgba($ui-bg-color, .96), rgba($body-bg-color, .72));
+	border-radius: $ui-surface-radius;
 
 	&[class^="zi-"], &[class*=" zi-"] {
-		font-size: 16px;
+		font-size: 18px;
 
 		&::before {
 			display: block;
-			margin-bottom: 8px;
+			margin-bottom: 10px;
 		}
 	}
 
 	.no-data-description {
 		font-size: 14px;
-		margin-top: 4px;
+		line-height: 1.45;
+		margin-top: 6px;
 	}
 }

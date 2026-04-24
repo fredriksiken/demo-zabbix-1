@@ -1233,6 +1233,7 @@ select {
 %form-input-style {
 	background-color: $form-bg-color;
 	border: 1px solid $form-border-color;
+	border-radius: $ui-control-radius;
 	box-sizing: border-box;
 	color: $font-color;
 	outline: 0;
@@ -1244,6 +1245,7 @@ select {
 
 	&:focus {
 		border-color: $form-focus-border-color;
+		box-shadow: 0 0 0 3px $btn-focus-outline-color;
 	}
 
 	&::placeholder {
@@ -1447,6 +1449,7 @@ select {
 	-webkit-text-fill-color: $font-color;
 	background-color: $form-disabled-bg-color;
 	border-color: $form-disabled-border-color;
+	box-shadow: none;
 }
 
 %form-disabled {
@@ -1454,6 +1457,7 @@ select {
 	-webkit-text-fill-color: $form-disabled-font-color;
 	background-color: $form-disabled-bg-color;
 	border-color: $form-disabled-border-color;
+	box-shadow: none;
 
 	&::placeholder {
 		color: $input-disabled-placeholder-color;
@@ -1803,7 +1807,8 @@ select {
 	background-color: $ui-bg-color;
 	border: 1px solid $overlay-border-color;
 	border-bottom-color: darken($overlay-border-color, 1%);
-	box-shadow: 0 4px 20px 0 $action-shadow-color;
+	box-shadow: $ui-panel-shadow;
+	border-radius: $ui-surface-radius;
 
 	.overlay-dialogue-header {
 		margin: -8px -10px 6px -10px;
@@ -1845,6 +1850,7 @@ select {
 		overflow: hidden;
 		margin: 0 10px;
 		padding: 13px 10px 10px;
+		border-radius: $ui-surface-radius;
 
 		.overlay-dialogue-header {
 			margin-bottom: 12px;
@@ -2940,7 +2946,7 @@ span {
 .menu-popup-preloader {
 	background: $preloader-bg-color;
 	border: 1px solid $overlay-border-color;
-	box-shadow: 0 4px 20px 0 $action-shadow-color;
+	box-shadow: $ui-panel-shadow;
 	height: 50px;
 	width: 50px;
 	position: fixed;

@@ -4,10 +4,11 @@ $max_levels: 10;
 	.navigation-tree-node-info {
 		display: flex;
 		align-items: center;
-		gap: 4px;
-		height: 18px;
-		padding: 9px 8px;
+		gap: 6px;
+		min-height: 18px;
+		padding: 9px 10px;
 		border-bottom: 1px solid $table-border-color;
+		border-radius: 8px;
 
 		&:hover {
 			background-color: $ui-hover-bg-color;

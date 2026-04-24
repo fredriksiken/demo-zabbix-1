@@ -7,12 +7,14 @@
 		box-sizing: border-box;
 		padding: 16px;
 		border: 1px solid $form-border-color;
-		border-radius: 2px;
+		border-radius: $ui-surface-radius;
+		box-shadow: $ui-raised-shadow;
 		min-width: 0;
 		white-space: normal;
 
 		&:has(input[type="radio"]:checked) {
 			border-color: $form-radio-selected-color;
+			box-shadow: 0 0 0 3px $btn-focus-outline-color;
 		}
 	}
 
