@@ -21,6 +21,7 @@ use API,
 	CArrayHelper,
 	CControllerDashboardWidgetView,
 	CControllerResponseData,
+	CAdHocFilterHelper,
 	CItemHelper,
 	CMacrosResolverHelper,
 	CNumberParser,
@@ -81,6 +82,20 @@ class WidgetView extends CControllerDashboardWidgetView {
 			$hostids = $this->fields_values['hostids'] ?: null;
 			$evaltype = $this->fields_values['evaltype'];
 			$tags = $this->fields_values['tags'] ?: null;
+		}
+
+		if (!$this->isTemplateDashboard()) {
+			$filter = CAdHocFilterHelper::mergeWidgetFilter([
+				'groupids' => $groupids,
+				'hostids' => $hostids,
+				'evaltype' => $evaltype,
+				'tags' => $tags
+			], $this->getInput('filter_context', []));
+
+			$groupids = $filter['groupids'];
+			$hostids = $filter['hostids'];
+			$evaltype = $filter['evaltype'];
+			$tags = $filter['tags'];
 		}
 
 		$maintenance_status = $this->fields_values['maintenance'] == HOST_MAINTENANCE_STATUS_OFF

@@ -19,7 +19,8 @@ namespace Widgets\TopTriggers\Actions;
 use API,
 	CArrayHelper,
 	CControllerDashboardWidgetView,
-	CControllerResponseData;
+	CControllerResponseData,
+	CAdHocFilterHelper;
 
 class WidgetView extends CControllerDashboardWidgetView {
 
@@ -64,6 +65,26 @@ class WidgetView extends CControllerDashboardWidgetView {
 			$hostids = $this->fields_values['hostids'] ?: null;
 		}
 
+		$filter_evaltype = $this->fields_values['evaltype'];
+		$filter_tags = $this->fields_values['tags'] ?: null;
+		$filter_severities = $this->fields_values['severities'];
+
+		if (!$this->isTemplateDashboard()) {
+			$filter = CAdHocFilterHelper::mergeWidgetFilter([
+				'groupids' => $groupids,
+				'hostids' => $hostids,
+				'severities' => $this->fields_values['severities'],
+				'evaltype' => $filter_evaltype,
+				'tags' => $filter_tags
+			], $this->getInput('filter_context', []));
+
+			$groupids = $filter['groupids'];
+			$hostids = $filter['hostids'];
+			$filter_evaltype = $filter['evaltype'];
+			$filter_tags = $filter['tags'];
+			$filter_severities = $filter['severities'];
+		}
+
 		$db_problems = API::Event()->get([
 			'countOutput' => true,
 			'groupBy' => ['objectid'],
@@ -77,9 +98,9 @@ class WidgetView extends CControllerDashboardWidgetView {
 			'search' => [
 				'name' => $this->fields_values['problem'] !== '' ? $this->fields_values['problem'] : null
 			],
-			'trigger_severities' => $this->fields_values['severities'] ?: null,
-			'evaltype' => $this->fields_values['evaltype'],
-			'tags' => $this->fields_values['tags'] ?: null,
+			'trigger_severities' => $filter_severities ?: null,
+			'evaltype' => $filter_evaltype,
+			'tags' => $filter_tags,
 			'sortfield' => ['rowscount'],
 			'sortorder' => ZBX_SORT_DOWN,
 			'limit' => ZBX_MAX_WIDGET_LINES

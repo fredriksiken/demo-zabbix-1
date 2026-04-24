@@ -23,7 +23,8 @@ use API,
 	CParser,
 	CProfile,
 	CSettingsHelper,
-	CSeverityHelper;
+	CSeverityHelper,
+	CAdHocFilterHelper;
 
 class WidgetView extends CControllerDashboardWidgetView {
 
@@ -97,14 +98,31 @@ class WidgetView extends CControllerDashboardWidgetView {
 		}
 		else {
 			$filter_groupids = $this->fields_values['groupids'] ? getSubGroups($this->fields_values['groupids']) : null;
+			$filter_hostids = $this->fields_values['hostids'] ?: null;
+			$filter_evaltype = $this->fields_values['evaltype'];
+			$filter_tags = $this->fields_values['tags'] ?: null;
+
+			if (!$this->isTemplateDashboard()) {
+				$filter = CAdHocFilterHelper::mergeWidgetFilter([
+					'groupids' => $filter_groupids,
+					'hostids' => $filter_hostids,
+					'evaltype' => $filter_evaltype,
+					'tags' => $filter_tags
+				], $this->getInput('filter_context', []));
+
+				$filter_groupids = $filter['groupids'];
+				$filter_hostids = $filter['hostids'];
+				$filter_evaltype = $filter['evaltype'];
+				$filter_tags = $filter['tags'];
+			}
 
 			$hosts = API::Host()->get([
 				'output' => ['hostid', 'name'],
 				'selectInventory' => ['location_lat', 'location_lon'],
 				'groupids' => $filter_groupids,
-				'hostids' => $this->fields_values['hostids'] ?: null,
-				'evaltype' => $this->fields_values['evaltype'],
-				'tags' => $this->fields_values['tags'] ?: null,
+				'hostids' => $filter_hostids,
+				'evaltype' => $filter_evaltype,
+				'tags' => $filter_tags,
 				'inheritedTags' => true,
 				'filter' => [
 					'inventory_mode' => [HOST_INVENTORY_MANUAL, HOST_INVENTORY_AUTOMATIC]
@@ -163,6 +181,15 @@ class WidgetView extends CControllerDashboardWidgetView {
 		// Filter hosts by severity filter.
 		$severity_filter = CProfile::get('web.dashboard.widget.geomap.severity_filter', '', $this->widgetid);
 		$severity_filter = ($severity_filter !== '') ? array_flip(explode(',', $severity_filter)) : [];
+		$filter_severities = $this->isTemplateDashboard()
+			? null
+			: ($this->getInput('filter_context', [])['severities'] ?? null);
+
+		if ($filter_severities) {
+			$severity_filter = $severity_filter
+				? array_intersect_key($severity_filter, array_flip(array_map('strval', $filter_severities)))
+				: array_flip(array_map('strval', $filter_severities));
+		}
 
 		if ($severity_filter && count($severity_filter) != 7) {
 			$hosts = array_filter($hosts, static function ($host) use ($severity_filter, $problems_by_host) {

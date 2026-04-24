@@ -68,6 +68,7 @@
 			configuration_hash,
 			dashboard_host,
 			dashboard_time_period,
+			filter_context,
 			web_layout_mode,
 			clone
 		}) {
@@ -118,7 +119,8 @@
 				broadcast_options: {
 					[CWidgetsData.DATA_TYPE_HOST_ID]: {rebroadcast: false},
 					[CWidgetsData.DATA_TYPE_HOST_IDS]: {rebroadcast: false},
-					[CWidgetsData.DATA_TYPE_TIME_PERIOD]: {rebroadcast: true}
+					[CWidgetsData.DATA_TYPE_TIME_PERIOD]: {rebroadcast: true},
+					[CWidgetsData.DATA_TYPE_FILTER_CONTEXT]: {rebroadcast: true}
 				},
 				csrf_token: <?= json_encode(CCsrfTokenHelper::get('dashboard')) ?>
 			});
@@ -147,7 +149,8 @@
 				[CWidgetsData.DATA_TYPE_HOST_IDS]: dashboard_host !== null
 					? [dashboard_host.id]
 					: CWidgetsData.getDefault(CWidgetsData.DATA_TYPE_HOST_IDS),
-				[CWidgetsData.DATA_TYPE_TIME_PERIOD]: time_period
+				[CWidgetsData.DATA_TYPE_TIME_PERIOD]: time_period,
+				[CWidgetsData.DATA_TYPE_FILTER_CONTEXT]: filter_context
 			});
 
 			ZABBIX.Dashboard.activate();
@@ -290,6 +293,7 @@
 					this.#disableNavigationWarning();
 
 					const curl = new Curl('zabbix.php');
+					const current_url = new URL(location.href);
 
 					curl.setArgument('action', 'dashboard.view');
 					curl.setArgument('dashboardid', response.dashboardid);
@@ -300,6 +304,16 @@
 
 					if (dashboard_page_index > 0) {
 						curl.setArgument('page', dashboard_page_index + 1);
+					}
+
+					for (const key of current_url.searchParams.keys()) {
+						if (!key.startsWith('filter_')) {
+							continue;
+						}
+
+						const values = current_url.searchParams.getAll(key);
+
+						curl.setArgument(key, values.length > 1 ? values : values[0]);
 					}
 
 					location.replace(curl.getUrl());
@@ -341,6 +355,7 @@
 			this.#disableNavigationWarning();
 
 			const curl = new Curl('zabbix.php');
+			const current_url = new URL(location.href);
 
 			curl.setArgument('action', 'dashboard.view');
 
@@ -349,6 +364,16 @@
 			}
 			else {
 				curl.setArgument('cancel', '1');
+			}
+
+			for (const key of current_url.searchParams.keys()) {
+				if (!key.startsWith('filter_')) {
+					continue;
+				}
+
+				const values = current_url.searchParams.getAll(key);
+
+				curl.setArgument(key, values.length > 1 ? values : values[0]);
 			}
 
 			location.replace(curl.getUrl());
@@ -365,6 +390,7 @@
 
 		#updateHistory({add_new})  {
 			const curl = new Curl('zabbix.php');
+			const current_url = new URL(location.href);
 
 			curl.setArgument('action', 'dashboard.view');
 			curl.setArgument('dashboardid', this.#dashboard.dashboardid);
@@ -391,6 +417,16 @@
 
 			if (page !== null) {
 				curl.setArgument('page', page);
+			}
+
+			for (const key of current_url.searchParams.keys()) {
+				if (!key.startsWith('filter_')) {
+					continue;
+				}
+
+				const values = current_url.searchParams.getAll(key);
+
+				curl.setArgument(key, values.length > 1 ? values : values[0]);
 			}
 
 			if (add_new) {

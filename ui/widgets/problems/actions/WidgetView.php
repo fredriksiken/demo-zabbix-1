@@ -19,6 +19,7 @@ namespace Widgets\Problems\Actions;
 use CControllerDashboardWidgetView,
 	CControllerResponseData,
 	CRoleHelper,
+	CAdHocFilterHelper,
 	CScreenProblem,
 	CSettingsHelper,
 	CTagHelper,
@@ -47,7 +48,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 		}
 		else {
 			$search_limit = CSettingsHelper::get(CSettingsHelper::SEARCH_LIMIT);
-			$data = CScreenProblem::getData([
+			$filter = [
 				'show' => $this->fields_values['show'],
 				'groupids' => !$this->isTemplateDashboard() ? $this->fields_values['groupids'] : null,
 				'exclude_groupids' => !$this->isTemplateDashboard() ? $this->fields_values['exclude_groupids'] : null,
@@ -65,7 +66,13 @@ class WidgetView extends CControllerDashboardWidgetView {
 					? $this->fields_values['acknowledged_by_me']
 					: 0,
 				'show_opdata' => $this->fields_values['show_opdata']
-			], $search_limit);
+			];
+
+			if (!$this->isTemplateDashboard()) {
+				$filter = CAdHocFilterHelper::mergeWidgetFilter($filter, $this->getInput('filter_context', []));
+			}
+
+			$data = CScreenProblem::getData($filter, $search_limit);
 
 			[$sortfield, $sortorder] = self::getSorting($this->fields_values['sort_triggers']);
 			$data = CScreenProblem::sortData($data, $search_limit, $sortfield, $sortorder);
@@ -84,9 +91,9 @@ class WidgetView extends CControllerDashboardWidgetView {
 			$data['problems'] = array_slice($data['problems'], 0, $this->fields_values['show_lines'], true);
 
 			$data = CScreenProblem::makeData($data, [
-				'show' => $this->fields_values['show'],
+				'show' => $filter['show'],
 				'details' => 0,
-				'show_opdata' => $this->fields_values['show_opdata']
+				'show_opdata' => $filter['show_opdata']
 			]);
 
 			$data += [
@@ -212,7 +219,7 @@ class WidgetView extends CControllerDashboardWidgetView {
 					: ZBX_TAG_OBJECT_PROBLEM;
 
 				$data['tags'] = CTagHelper::getTagsHtml($data['problems'] + $symptom_data['problems'], $object_type, [
-					'filter_tags' => $this->fields_values['tags'],
+					'filter_tags' => $filter['tags'],
 					'tag_priority' => $this->fields_values['tag_priority'],
 					'show_tags_limit' => $this->fields_values['show_tags'],
 					'tag_name_format' => $this->fields_values['tag_name_format']
@@ -224,15 +231,15 @@ class WidgetView extends CControllerDashboardWidgetView {
 				'error' => null,
 				'initial_load' => (bool) $this->getInput('initial_load', 0),
 				'fields' => [
-					'show' => $this->fields_values['show'],
+					'show' => $filter['show'],
 					'show_lines' => $this->fields_values['show_lines'],
 					'show_tags' => $this->fields_values['show_tags'],
 					'show_timeline' => $this->fields_values['show_timeline'],
 					'highlight_row' => $this->fields_values['highlight_row'],
-					'tags' => $this->fields_values['tags'],
+					'tags' => $filter['tags'],
 					'tag_name_format' => $this->fields_values['tag_name_format'],
 					'tag_priority' => $this->fields_values['tag_priority'],
-					'show_opdata' => $this->fields_values['show_opdata']
+					'show_opdata' => $filter['show_opdata']
 				],
 				'info' => $info,
 				'sortfield' => $sortfield,

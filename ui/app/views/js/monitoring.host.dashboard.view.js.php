@@ -82,6 +82,7 @@
 			broadcast_requirements,
 			dashboard_host,
 			dashboard_time_period,
+			filter_context,
 			web_layout_mode
 		}) {
 			this.#hostid = dashboard_host.hostid;
@@ -131,7 +132,8 @@
 					broadcast_options: {
 						[CWidgetsData.DATA_TYPE_HOST_ID]: {rebroadcast: false},
 						[CWidgetsData.DATA_TYPE_HOST_IDS]: {rebroadcast: false},
-						[CWidgetsData.DATA_TYPE_TIME_PERIOD]: {rebroadcast: true}
+						[CWidgetsData.DATA_TYPE_TIME_PERIOD]: {rebroadcast: true},
+						[CWidgetsData.DATA_TYPE_FILTER_CONTEXT]: {rebroadcast: true}
 					},
 					csrf_token: <?= json_encode(CCsrfTokenHelper::get('dashboard')) ?>
 				});
@@ -156,7 +158,8 @@
 				ZABBIX.Dashboard.broadcast({
 					[CWidgetsData.DATA_TYPE_HOST_ID]: [dashboard_host.hostid],
 					[CWidgetsData.DATA_TYPE_HOST_IDS]: [dashboard_host.hostid],
-					[CWidgetsData.DATA_TYPE_TIME_PERIOD]: time_period
+					[CWidgetsData.DATA_TYPE_TIME_PERIOD]: time_period,
+					[CWidgetsData.DATA_TYPE_FILTER_CONTEXT]: filter_context
 				});
 
 				ZABBIX.Dashboard.activate();
@@ -200,11 +203,23 @@
 		}
 
 		#addHostDashboardTabs() {
+			const current_url = new URL(location.href);
+
 			for (const host_dashboard of this.#host_dashboards) {
 				const url = new Curl('zabbix.php');
 				url.setArgument('action', 'host.dashboard.view');
 				url.setArgument('hostid', this.#hostid);
 				url.setArgument('dashboardid', host_dashboard.dashboardid);
+
+				for (const key of current_url.searchParams.keys()) {
+					if (!key.startsWith('filter_')) {
+						continue;
+					}
+
+					const values = current_url.searchParams.getAll(key);
+
+					url.setArgument(key, values.length > 1 ? values : values[0]);
+				}
 
 				host_dashboard.link = url.getUrl();
 

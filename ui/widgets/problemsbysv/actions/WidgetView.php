@@ -18,7 +18,8 @@ namespace Widgets\ProblemsBySv\Actions;
 
 use APP,
 	CControllerDashboardWidgetView,
-	CControllerResponseData;
+	CControllerResponseData,
+	CAdHocFilterHelper;
 
 use Widgets\ProblemsBySv\Widget;
 
@@ -66,6 +67,10 @@ class WidgetView extends CControllerDashboardWidgetView {
 				'evaltype' => $this->fields_values['evaltype'],
 				'tags' => $this->fields_values['tags']
 			];
+
+			if (!$this->isTemplateDashboard()) {
+				$filter = CAdHocFilterHelper::mergeWidgetFilter($filter, $this->getInput('filter_context', []));
+			}
 
 			$data = getSystemStatusData($filter);
 
