@@ -1,0 +1,29 @@
+{
+	"manifest_version": 2.0,
+	"id": "emoji",
+	"type": "widget",
+	"name": "Emoji widget",
+	"namespace": "Emoji",
+	"version": "1.0",
+	"author": "Zabbix",
+	"description": "Displays a single emoji driven by item thresholds.",
+	"url": "web_interface/frontend_sections/dashboards/widgets/emoji",
+	"widget": {
+		"size": {
+			"width": 12,
+			"height": 3
+		},
+		"js_class": "CWidgetEmoji",
+		"in": {
+			"itemid": {
+				"type": "_itemid",
+				"required": true
+			}
+		}
+	},
+	"actions": {
+		"widget.emoji.view": {
+			"class": "WidgetView"
+		}
+	}
+}
