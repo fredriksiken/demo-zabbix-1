@@ -1,0 +1,92 @@
+.traffic-light-widget {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	gap: 14px;
+	height: 100%;
+	padding: 16px 12px;
+	text-align: center;
+}
+
+.traffic-light-widget-indicators {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+	width: 100%;
+}
+
+.traffic-light-widget-indicator {
+	width: clamp(28px, 18%, 52px);
+	aspect-ratio: 1 / 1;
+	border-radius: 50%;
+	opacity: 0.2;
+	box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.traffic-light-widget-indicator-active {
+	opacity: 1;
+	box-shadow:
+		0 0 0 2px rgba(255, 255, 255, 0.12),
+		0 0 18px rgba(255, 255, 255, 0.18);
+}
+
+.traffic-light-widget-indicator-green {
+	background: #3bc97d;
+}
+
+.traffic-light-widget-indicator-yellow {
+	background: #fccb1d;
+}
+
+.traffic-light-widget-indicator-red {
+	background: #e65660;
+}
+
+.traffic-light-widget-details {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	max-width: 100%;
+}
+
+.traffic-light-widget-label {
+	color: var(--grey-200);
+	font-size: 12px;
+	line-height: 16px;
+	word-break: break-word;
+}
+
+.traffic-light-widget-value {
+	font-size: 24px;
+	font-weight: 700;
+	line-height: 1.2;
+	word-break: break-word;
+}
+
+.traffic-light-widget-message {
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 16px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.traffic-light-widget-state-green .traffic-light-widget-message {
+	color: #3bc97d;
+}
+
+.traffic-light-widget-state-yellow .traffic-light-widget-message {
+	color: #b68d00;
+}
+
+.traffic-light-widget-state-red .traffic-light-widget-message {
+	color: #e65660;
+}
+
+.traffic-light-widget-state-no_data .traffic-light-widget-message,
+.traffic-light-widget-state-unsupported .traffic-light-widget-message,
+.traffic-light-widget-state-inaccessible .traffic-light-widget-message {
+	color: var(--grey-200);
+}
