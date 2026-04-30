@@ -1,0 +1,33 @@
+{
+	"manifest_version": 2.0,
+	"id": "trafficlight",
+	"type": "widget",
+	"name": "Traffic light",
+	"namespace": "TrafficLight",
+	"version": "1.0",
+	"author": "Zabbix",
+	"description": "Displays a numeric item with a traffic-light status based on configured thresholds.",
+	"url": "web_interface/frontend_sections/dashboards/widgets/traffic_light",
+	"widget": {
+		"size": {
+			"width": 14,
+			"height": 4
+		},
+		"js_class": "CWidgetTrafficLight",
+		"refresh_rate": 60,
+		"in": {
+			"itemid": {
+				"type": "_itemid",
+				"required": true
+			}
+		}
+	},
+	"actions": {
+		"widget.trafficlight.view": {
+			"class": "WidgetView"
+		}
+	},
+	"assets": {
+		"js": ["class.widget.js"]
+	}
+}
