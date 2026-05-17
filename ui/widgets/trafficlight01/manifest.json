@@ -1,0 +1,28 @@
+{
+	"manifest_version": 2.0,
+	"id": "trafficlight01",
+	"type": "widget",
+	"name": "Traffic Light #01",
+	"namespace": "TrafficLight01",
+	"version": "1.0",
+	"author": "Zabbix",
+	"description": "Displays red/yellow/green traffic light states with a demo control.",
+	"url": "web_interface/frontend_sections/dashboards/widgets/trafficlight01",
+	"widget": {
+		"size": {
+			"width": 8,
+			"height": 6
+		},
+		"js_class": "CWidgetTrafficLight01",
+		"refresh_rate": 0
+	},
+	"actions": {
+		"widget.trafficlight01.view": {
+			"class": "WidgetView"
+		}
+	},
+	"assets": {
+		"css": ["style.css"],
+		"js": ["class.widget.js"]
+	}
+}
